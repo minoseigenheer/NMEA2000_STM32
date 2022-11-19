@@ -1,21 +1,21 @@
 = NMEA2000_STM32 CAN library =
 
 
-for STM32F105 CAN-bus board
+.for STM32F105 CAN-bus board
 Might also works with F103 / F107 / F405 / F407... and other STM32 MCU's with integrated CAN controller.
 
 
-To use this library, you will also need:
-- NMEA2000 library https://github.com/ttlappalainen/NMEA2000
-- STM32 HAL for your MCU
+  To use this library, you will also need:
+  - NMEA2000 library https://github.com/ttlappalainen/NMEA2000
+  - STM32 HAL for your MCU
 
 
-Configure the CAN bus with STM23CubeIDE:
-- CAN bus pins
-- CAN bus clock settings of your MCU
-- Enable the CAN RX1 interrupt in the NVIC settings
-- Enable the CAN TX interrupt in the NVIC settings
-- Set CAN bus bit timing parameters for 250kbit
+  Configure the CAN bus with STM23CubeIDE:
+  - CAN bus pins
+  - CAN bus clock settings of your MCU
+  - Enable the CAN RX1 interrupt in the NVIC settings
+  - Enable the CAN TX interrupt in the NVIC settings
+  - Set CAN bus bit timing parameters for 250kbit
 
   // Example configuration CAN Baudrate for a 72MHz Clock
   hcan1.Instance = CAN1;
