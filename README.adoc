@@ -1,9 +1,9 @@
 = NMEA2000_STM32 CAN library =
 
 
-  Designed for STM32F105 CAN gateway.
-  https://github.com/BitterAndReal/STM32_NMEA2000_CAN_gateway
-  Might also works with F103 / F107 / F405 / F407... and other STM32 MCU's with integrated CAN controller.
+Designed for STM32F105 CAN gateway. +
+https://github.com/BitterAndReal/STM32_NMEA2000_CAN_gateway +
+Might also works with F103 / F107 / F405 / F407... and other STM32 MCU's with integrated CAN controller.
 
 
   To use this library, you will also need:
@@ -29,8 +29,8 @@
   
 
 
-  Thanks for the great NMEA2000 CAN lib example Teensyx by ttlappalainen.
-  https://github.com/ttlappalainen/NMEA2000_Teensyx/blob/master/src/NMEA2000_Teensyx.cpp
+Thanks for the great NMEA2000 CAN lib example Teensyx by ttlappalainen.+
+https://github.com/ttlappalainen/NMEA2000_Teensyx/blob/master/src/NMEA2000_Teensyx.cpp
 
 
 ## License
