@@ -42,6 +42,7 @@ based setup. See also NMEA2000 library.
 #endif
 #include "stm32f1xx_hal.h"
 
+
 #ifdef __cplusplus
 	}
 #endif
@@ -63,7 +64,7 @@ class tNMEA2000_STM32 : public tNMEA2000 {
   public:
     tNMEA2000_STM32(CAN_HandleTypeDef *_N2kCan);
 
-  private:
+  protected:
 	CAN_HandleTypeDef *N2kCan;
 
 	CAN_TxHeaderTypeDef CANTxHeader;
@@ -102,10 +103,19 @@ class tNMEA2000_STM32 : public tNMEA2000 {
     bool sendFromTxRing(uint8_t prio);
     bool writeTxMailbox(unsigned long id, unsigned char len, const unsigned char *buf, bool extended);
 
+    void DisableIRQ_CAN_RX();
+    void EnableIRQ_CAN_RX();
+    void DisableIRQ_CAN_TX();
+    void EnableIRQ_CAN_TX();
+
   public:
-    void rxInterrupt(CAN_HandleTypeDef *hcan);
+    void CANRxInterrupt(CAN_HandleTypeDef *hcan);
 
 };
+
+tNMEA2000_STM32 * NMEA2000_STM32_instance;
+
+bool SetCANFilter( CAN_HandleTypeDef *hcan, bool ExtendedIdentifier, uint32_t FilterNum, uint32_t Mask, uint32_t Filter );
 
 #endif /* NMEA2000_STM32_H_ */
 

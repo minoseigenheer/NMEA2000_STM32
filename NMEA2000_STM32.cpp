@@ -49,7 +49,6 @@
 //static tNMEA2000_STM32* _CAN1 = 0;
 #endif
 
-tNMEA2000_STM32 * NMEA2000_STM32_instance;
 
 //*****************************************************************************
 tNMEA2000_STM32::tNMEA2000_STM32(CAN_HandleTypeDef *_N2kCan) :
@@ -58,26 +57,29 @@ tNMEA2000_STM32::tNMEA2000_STM32(CAN_HandleTypeDef *_N2kCan) :
 	NMEA2000_STM32_instance = this;
 }
 
-//*****************************************************************************
-tNMEA2000_STM32::~tNMEA2000_STM32(){
-
-}
 
 //*****************************************************************************
 bool tNMEA2000_STM32::CANOpen() {
 
-	bool ret = false;
+	bool ret = true;
 
 	// Enable CAN
-	if (HAL_CAN_Start(N2kCan) == HAL_OK) {
-		ret = true;
+	if (HAL_CAN_Start(N2kCan) != HAL_OK) {
+		ret = false;
 	}
 
 	// activate CAN callback 1 interrupt for NMEA2000 CAN bus
-	if (HAL_CAN_ActivateNotification(N2kCan, CAN_IT_RX_FIFO1_MSG_PENDING) == HAL_OK) {
-		ret = true;
+	if (HAL_CAN_ActivateNotification(N2kCan, CAN_IT_RX_FIFO1_MSG_PENDING) != HAL_OK) {
+		ret = false;
 	}
 
+	bool ExtendedId      = true;
+	uint32_t FilterNum   = 0;
+	uint32_t Mask        = 0x00000000;
+	uint32_t Filter      = 0x00000000;
+	if (SetCANFilter( N2kCan, ExtendedId, FilterNum, Mask, Filter ) != true) {
+		ret = false;
+	}
 
 	return ret;
 }
@@ -88,12 +90,12 @@ bool tNMEA2000_STM32::CANSendFrame(unsigned long id, unsigned char len, const un
 	uint8_t prio = (uint8_t)((id >> 26) & 0x7);
 	bool ret = false;
 
-	  //irqLock();
+	DisableIRQ_CAN_RX();
 
-	  bool TxMailboxesFull = HAL_CAN_GetTxMailboxesFreeLevel(N2kCan) == 0;
-	  bool SendFromBuffer = false;
+	bool TxMailboxesFull = HAL_CAN_GetTxMailboxesFreeLevel(N2kCan) == 0;
+	bool SendFromBuffer = false;
 
-	// If tx buffer has this priority data or mailbox is busy, buffer this
+	// If tx buffer has already some frames waiting or mailbox is full, buffer frame
 	if ( !txRing->isEmpty(prio) || TxMailboxesFull ) {
 		CAN_message_t *msg = txRing->getAddRef(prio);
 		if ( msg!=0 ) {
@@ -105,7 +107,7 @@ bool tNMEA2000_STM32::CANSendFrame(unsigned long id, unsigned char len, const un
 			ret = true;
 			//frame buffered
 		}
-	SendFromBuffer = true;
+		SendFromBuffer = true;
 	}
 
 	if ( !TxMailboxesFull ) {
@@ -117,7 +119,7 @@ bool tNMEA2000_STM32::CANSendFrame(unsigned long id, unsigned char len, const un
 		/* transmit entry accepted */
 	}
 
-	//irqRelease();
+	EnableIRQ_CAN_RX();
 
 	return ret;
 }
@@ -127,7 +129,7 @@ bool tNMEA2000_STM32::CANGetFrame(unsigned long& id, unsigned char& len, unsigne
 
 	bool ret = false;
 
-	//irqLock();
+	DisableIRQ_CAN_TX();
 
 	const CAN_message_t *msg = rxRing->getReadRef();
 	if ( msg!=0 ) {
@@ -138,7 +140,7 @@ bool tNMEA2000_STM32::CANGetFrame(unsigned long& id, unsigned char& len, unsigne
 	    ret = true;
 	}
 
-	//irqRelease();
+	EnableIRQ_CAN_TX();
 
 	return ret;
 
@@ -209,7 +211,7 @@ bool tNMEA2000_STM32::sendFromTxRing(uint8_t prio) {
 }
 
 // *****************************************************************************
-void tNMEA2000_STM32::rxInterrupt(CAN_HandleTypeDef *hcan) {
+void tNMEA2000_STM32::CANRxInterrupt(CAN_HandleTypeDef *hcan) {
 	CAN_message_t *rxMsg;
 	uint8_t prio;
 
@@ -227,9 +229,42 @@ void tNMEA2000_STM32::rxInterrupt(CAN_HandleTypeDef *hcan) {
 			memcpy(rxMsg->buf, CANRxdata, rxMsg->len);
 		}
 	}
-	// TODO not sure if we should check the fifo fill level if we use interrups?
+	// I think we don't have to check the fifo fill level if we use interrups?
 	// HAL_CAN_GetRxFifoFillLevel(*N2kCan, CAN_RX_FIFO1);
 
+}
+
+void tNMEA2000_STM32::DisableIRQ_CAN_RX() {
+	if (N2kCan->Instance == CAN1) {
+		NVIC_DisableIRQ(CAN1_RX1_IRQn);
+	}
+	else if (N2kCan->Instance == CAN2) {
+		NVIC_DisableIRQ(CAN2_RX1_IRQn);
+	}
+}
+void tNMEA2000_STM32::EnableIRQ_CAN_RX() {
+	if (N2kCan->Instance == CAN1) {
+		NVIC_EnableIRQ(CAN1_RX1_IRQn);
+	}
+	else if (N2kCan->Instance == CAN2) {
+		NVIC_EnableIRQ(CAN2_RX1_IRQn);
+	}
+}
+void tNMEA2000_STM32::DisableIRQ_CAN_TX() {
+	if (N2kCan->Instance == CAN1) {
+		NVIC_DisableIRQ(CAN1_TX_IRQn);
+	}
+	else if (N2kCan->Instance == CAN2) {
+		NVIC_DisableIRQ(CAN2_TX_IRQn);
+	}
+}
+void tNMEA2000_STM32::EnableIRQ_CAN_TX() {
+	if (N2kCan->Instance == CAN1) {
+		NVIC_EnableIRQ(CAN1_TX_IRQn);
+	}
+	else if (N2kCan->Instance == CAN2) {
+		NVIC_EnableIRQ(CAN2_TX_IRQn);
+	}
 }
 
 
@@ -237,7 +272,80 @@ void tNMEA2000_STM32::rxInterrupt(CAN_HandleTypeDef *hcan) {
 void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
 	// Call rxInterrupt method of the last tNMEA2000_STM32 instance.
-	NMEA2000_STM32_instance->rxInterrupt(hcan);
+	NMEA2000_STM32_instance->CANRxInterrupt(hcan);
 }
 
+/**
+  * @brief  Set STM32 HAL CAN filter
+  * @param  hcan CAN_HandleTypeDef pointer to CAN instance
+  * @param  ExtendedIdentifier: 0 = normal CAN identifier; 1 = extended CAN identifier
+  * @param  FilterNum CAN bus filter number for this CAN bus 0...13 / 0...27
+  * @param  Mask uint32_t bit mask
+  * @param  Filter uint32_t CAN identifier
+  * @retval success or not
+  */
+bool SetCANFilter( CAN_HandleTypeDef *hcan, bool ExtendedIdentifier, uint32_t FilterNum, uint32_t Mask, uint32_t Filter )
+{
+	bool ret = false;
+
+	// For dual CAN MCU's we have 28 filter banks to share between the CAN busses
+	// For single CAN SlaveStartFilterBank does nothing and we have 14 filter banks.
+	// If not defined different we use filter 0 .. 13 for primary CAN bus and 14 ... 27 for secondary CAN bus
+	#if !defined(SlaveStartFilterBank)
+	const uint32_t SlaveStartFilterBank = 14;
+	#endif
+
+	#if defined(CAN2) // we have two CAN busses
+		const int32_t TotalFilterBanks = 27;
+    #elif defined(CAN1) // we have only one CAN bus
+		const int32_t TotalFilterBanks = 13;
+	#else // we have no CAN defined
+		const int32_t TotalFilterBanks = -1;
+	#endif
+
+	int32_t FilterBank = -1;
+	if (hcan->Instance == CAN1
+			&& FilterNum <= TotalFilterBanks
+			&& FilterNum < SlaveStartFilterBank ) {
+		FilterBank = FilterNum;
+	}
+	else if (hcan->Instance == CAN2
+			&& FilterNum <= TotalFilterBanks - SlaveStartFilterBank) {
+		FilterBank = FilterNum + SlaveStartFilterBank;
+	}
+
+	if ( FilterBank >= 0
+			&& IS_CAN_ALL_INSTANCE(hcan->Instance) )
+	{
+		CAN_FilterTypeDef sFilterConfig;
+
+		sFilterConfig.FilterBank = FilterBank;
+		sFilterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
+		sFilterConfig.FilterScale = CAN_FILTERSCALE_32BIT;
+
+		if (ExtendedIdentifier == false)
+		{
+			sFilterConfig.FilterMaskIdHigh = Mask << 5 & 0xFFFF;
+			sFilterConfig.FilterMaskIdLow = 0x0000; // allows both remote request and data frames
+			sFilterConfig.FilterIdHigh = Filter << 5 & 0xFFFF;
+			sFilterConfig.FilterIdLow =  0x0000;
+		}
+		else
+		{ // ExtendedIdentifier == true
+			sFilterConfig.FilterMaskIdHigh = Mask >> 13 & 0xFFFF;
+			sFilterConfig.FilterMaskIdLow = (Mask << 3 & 0xFFF8) | (0x1 << 2);
+			sFilterConfig.FilterIdHigh = Filter >> 13 & 0xFFFF; // EXTID[28:13]
+			sFilterConfig.FilterIdLow = (Filter << 3 & 0xFFF8) | (0x1 << 2); // EXTID[12:0] + IDE
+		}
+
+		sFilterConfig.FilterFIFOAssignment = 0;
+		sFilterConfig.FilterActivation = CAN_FILTER_ENABLE;
+		sFilterConfig.SlaveStartFilterBank = SlaveStartFilterBank; // CAN 0: 0...13 // CAN 1: 14...27 (28 filter banks in total)
+
+		if (HAL_CAN_ConfigFilter(hcan, &sFilterConfig) != HAL_OK) {
+			ret = true;
+		}
+	}
+	return ret;
+}
 

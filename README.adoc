@@ -17,7 +17,7 @@ Might also works with F103 / F107 / F405 / F407... and other STM32 MCU's with in
   - Enable the CAN TX interrupt in the NVIC settings
   - Set CAN bus bit timing parameters for 250kbit
 
-  // Example configuration CAN Baudrate for a 72MHz Clock
+  // Example CAN configuration for 250kbit with a 72MHz Clock
   hcan1.Instance = CAN1;
   hcan1.Init.Prescaler = 8;
   hcan1.Init.Mode = CAN_MODE_NORMAL;
