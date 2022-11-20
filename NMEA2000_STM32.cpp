@@ -95,7 +95,7 @@ bool tNMEA2000_STM32::CANSendFrame(unsigned long id, unsigned char len, const un
 	bool TxMailboxesFull = HAL_CAN_GetTxMailboxesFreeLevel(N2kCan) == 0;
 	bool SendFromBuffer = false;
 
-	// If tx buffer has already some frames waiting or mailbox is full, buffer frame
+	// If TX buffer has already some frames waiting with higher prio or mailbox is full, buffer frame
 	if ( !txRing->isEmpty(prio) || TxMailboxesFull ) {
 		CAN_message_t *msg = txRing->getAddRef(prio);
 		if ( msg!=0 ) {

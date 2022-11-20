@@ -1,8 +1,9 @@
 = NMEA2000_STM32 CAN library =
 
 
-.for STM32F105 CAN-bus board
-Might also works with F103 / F107 / F405 / F407... and other STM32 MCU's with integrated CAN controller.
+  Designed for STM32F105 CAN gateway.
+  https://github.com/BitterAndReal/STM32_NMEA2000_CAN_gateway
+  Might also works with F103 / F107 / F405 / F407... and other STM32 MCU's with integrated CAN controller.
 
 
   To use this library, you will also need:
@@ -10,14 +11,15 @@ Might also works with F103 / F107 / F405 / F407... and other STM32 MCU's with in
   - STM32 HAL for your MCU
 
 
-  Configure the CAN bus with STM23CubeIDE:
-  - CAN bus pins
-  - CAN bus clock settings of your MCU
+  Configure the CAN bus in STM23CubeIDE:
+  - activate CAN
+  - Configure CAN bus GPIO pins
+  - External clock settings of your MCU
   - Enable the CAN RX1 interrupt in the NVIC settings
   - Enable the CAN TX interrupt in the NVIC settings
   - Set CAN bus bit timing parameters for 250kbit
 
-  // Example CAN configuration for 250kbit with a 72MHz Clock
+  // Example CAN bit timing configuration for 250kbit with a 72MHz Clock
   hcan1.Instance = CAN1;
   hcan1.Init.Prescaler = 8;
   hcan1.Init.Mode = CAN_MODE_NORMAL;
@@ -27,8 +29,8 @@ Might also works with F103 / F107 / F405 / F407... and other STM32 MCU's with in
   
 
 
- a lot of code is copied from the NMEA2000 Teensyx CAN lib by ttlappalainen
- https://github.com/ttlappalainen/NMEA2000_Teensyx/blob/master/src/NMEA2000_Teensyx.cpp
+  Thanks for the great NMEA2000 CAN lib example Teensyx by ttlappalainen.
+  https://github.com/ttlappalainen/NMEA2000_Teensyx/blob/master/src/NMEA2000_Teensyx.cpp
 
 
 ## License
