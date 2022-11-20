@@ -40,8 +40,11 @@ based setup. See also NMEA2000 library.
 	extern "C"
 	{
 #endif
-#include "stm32f1xx_hal.h"
 
+#include "stm32f1xx_hal.h"
+#include "main.h"
+#include <cstring>
+#include <string.h>
 
 #ifdef __cplusplus
 	}
@@ -50,6 +53,7 @@ based setup. See also NMEA2000 library.
 
 #ifndef NMEA2000_STM32_H_
 #define NMEA2000_STM32_H_
+
 #include <NMEA2000.h>
 #include <RingBuffer.h>
 

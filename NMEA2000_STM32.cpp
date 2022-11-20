@@ -34,20 +34,7 @@
 
  */
 
-
-#include <cstring>
-#include <string.h>
-#include "main.h"
-
 #include <NMEA2000_STM32.h>
-
-
-#ifdef CAN0
-//static tNMEA2000_STM32* _CAN0 = 0;
-#endif
-#ifdef CAN1
-//static tNMEA2000_STM32* _CAN1 = 0;
-#endif
 
 
 //*****************************************************************************
@@ -90,7 +77,8 @@ bool tNMEA2000_STM32::CANSendFrame(unsigned long id, unsigned char len, const un
 	uint8_t prio = (uint8_t)((id >> 26) & 0x7);
 	bool ret = false;
 
-	DisableIRQ_CAN_RX();
+	//This interrupt deactivation does nothing because the TX mailboxes get not filled by interrupt!
+	//HAL_CAN_DeactivateNotification(N2kCan, CAN_IT_TX_MAILBOX_EMPTY);
 
 	bool TxMailboxesFull = HAL_CAN_GetTxMailboxesFreeLevel(N2kCan) == 0;
 	bool SendFromBuffer = false;
@@ -119,7 +107,7 @@ bool tNMEA2000_STM32::CANSendFrame(unsigned long id, unsigned char len, const un
 		/* transmit entry accepted */
 	}
 
-	EnableIRQ_CAN_RX();
+	//HAL_CAN_ActivateNotification(N2kCan, CAN_IT_TX_MAILBOX_EMPTY);
 
 	return ret;
 }
@@ -129,7 +117,7 @@ bool tNMEA2000_STM32::CANGetFrame(unsigned long& id, unsigned char& len, unsigne
 
 	bool ret = false;
 
-	DisableIRQ_CAN_TX();
+	HAL_CAN_DeactivateNotification(N2kCan, CAN_IT_RX_FIFO1_MSG_PENDING);
 
 	const CAN_message_t *msg = rxRing->getReadRef();
 	if ( msg!=0 ) {
@@ -140,7 +128,7 @@ bool tNMEA2000_STM32::CANGetFrame(unsigned long& id, unsigned char& len, unsigne
 	    ret = true;
 	}
 
-	EnableIRQ_CAN_TX();
+	HAL_CAN_ActivateNotification(N2kCan, CAN_IT_RX_FIFO1_MSG_PENDING);
 
 	return ret;
 
@@ -233,7 +221,9 @@ void tNMEA2000_STM32::CANRxInterrupt(CAN_HandleTypeDef *hcan) {
 	// HAL_CAN_GetRxFifoFillLevel(*N2kCan, CAN_RX_FIFO1);
 
 }
-
+/*
+ * use HAL_CAN_ActivateNotification(N2kCan, CAN_IT_TX_MAILBOX_EMPTY);
+ *
 void tNMEA2000_STM32::DisableIRQ_CAN_RX() {
 	if (N2kCan->Instance == CAN1) {
 		NVIC_DisableIRQ(CAN1_RX1_IRQn);
@@ -266,6 +256,7 @@ void tNMEA2000_STM32::EnableIRQ_CAN_TX() {
 		NVIC_EnableIRQ(CAN2_TX_IRQn);
 	}
 }
+*/
 
 
 // *****************************************************************************
