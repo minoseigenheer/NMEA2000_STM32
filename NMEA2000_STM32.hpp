@@ -36,29 +36,25 @@ Inherited NMEA2000 object for STM32 MCU's with internal CAN
 based setup. See also NMEA2000 library.
 */
 
-#ifdef __cplusplus
-	extern "C"
-	{
-#endif
-
-#include "stm32f1xx_hal.h"
-#include "main.h"
-#include <cstring>
-#include <string.h>
-
-#ifdef __cplusplus
-	}
-#endif
-
 
 #ifndef NMEA2000_STM32_H_
 #define NMEA2000_STM32_H_
 
-#include <NMEA2000.h>
-#include <RingBuffer.h>
+#include "stm32f1xx_hal.h"
+#include "main.h"
+
+#include <string.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdbool.h>
+
+#include "NMEA2000.hpp"
+#include "N2kMsg.hpp"
+#include "RingBuffer.hpp"
 
 
 class tNMEA2000_STM32 : public tNMEA2000 {
+
   protected:
     bool CANSendFrame(unsigned long id, unsigned char len, const unsigned char* buf, bool wait_sent = true);
     bool CANOpen();
@@ -66,7 +62,7 @@ class tNMEA2000_STM32 : public tNMEA2000 {
     void InitCANFrameBuffers();
 
   public:
-    tNMEA2000_STM32(CAN_HandleTypeDef *_N2kCan);
+	tNMEA2000_STM32(CAN_HandleTypeDef *_N2kCan);
 
   protected:
 	CAN_HandleTypeDef *N2kCan;
@@ -79,12 +75,21 @@ class tNMEA2000_STM32 : public tNMEA2000 {
 
 	uint32_t CANTxMailbox;
 
+	const uint32_t CANbaudRate = 250; // NMEA2000 works with 250 kbit/s
 	const uint32_t RX_FIFO = CAN_RX_FIFO1;
+
+	CAN_TypeDef *CANinstance;
+
+	enum APB1clock_t { APB1clock_24mHz = 0, // STM32F???
+					   APB1clock_36mHz = 1, // STM32F103
+					   APB1clock_42mHz = 3, // STM32F405/407
+					   APB1clock_48mHz = 2};// STM32F105/107
+	APB1clock_t APB1clockSpeed;
 
   protected:
     struct CAN_message_t {
       uint32_t id = 0;          // can identifier
-  //    uint16_t timestamp = 0;   // FlexCAN time when message arrived
+  //    uint16_t timestamp = 0;   // time when message arrived
   //    uint8_t idhit = 0; // filter that id came from
       struct {
         bool extended = 0; // identifier is extended (29-bit)
@@ -105,21 +110,24 @@ class tNMEA2000_STM32 : public tNMEA2000 {
     uint8_t firstTxBox;
 
     bool sendFromTxRing(uint8_t prio);
-    bool writeTxMailbox(unsigned long id, unsigned char len, const unsigned char *buf, bool extended);
+    bool CANwriteTxMailbox(unsigned long id, unsigned char len, const unsigned char *buf, bool extended);
 
-    void DisableIRQ_CAN_RX();
-    void EnableIRQ_CAN_RX();
-    void DisableIRQ_CAN_TX();
-    void EnableIRQ_CAN_TX();
+    static HAL_StatusTypeDef N2kCAN_Init();
+    static HAL_StatusTypeDef SetCANFilter( CAN_HandleTypeDef *hcan, bool ExtendedIdentifier, uint32_t FilterNum, uint32_t Mask, uint32_t Filter );
 
   public:
-    void CANRxInterrupt(CAN_HandleTypeDef *hcan);
+    void CANreadTxMailbox(CAN_HandleTypeDef *hcan);
+
 
 };
 
-tNMEA2000_STM32 * NMEA2000_STM32_instance;
 
-bool SetCANFilter( CAN_HandleTypeDef *hcan, bool ExtendedIdentifier, uint32_t FilterNum, uint32_t Mask, uint32_t Filter );
+//-----------------------------------------------------------------------------
+
+void     delay(uint32_t ms);
+uint32_t millis(void);
+
+
 
 #endif /* NMEA2000_STM32_H_ */
 

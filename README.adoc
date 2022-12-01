@@ -17,20 +17,17 @@ Might also works with F103 / F107 / F405 / F407... and other STM32 MCU's with in
   - External clock settings of your MCU
   - Enable the CAN RX1 interrupt in the NVIC settings
   - Enable the CAN TX interrupt in the NVIC settings
-  - Set CAN bus bit timing parameters for 250kbit
 
-  // Example CAN bit timing configuration for 250kbit with a 72MHz Clock
-  hcan1.Instance = CAN1;
-  hcan1.Init.Prescaler = 8;
-  hcan1.Init.Mode = CAN_MODE_NORMAL;
-  hcan1.Init.SyncJumpWidth = CAN_SJW_1TQ;
-  hcan1.Init.TimeSeg1 = CAN_BS1_12TQ;
-  hcan1.Init.TimeSeg2 = CAN_BS2_5TQ;
+  
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  - I had to rename all .h files in the NMEA2000 lib to .hpp to force the G++ compiler.
+  	There is probably a better way but have not figured it out...
+  - 
   
 
 
 Thanks for the great NMEA2000 CAN lib example Teensyx by ttlappalainen.+
-https://github.com/ttlappalainen/NMEA2000_Teensyx/blob/master/src/NMEA2000_Teensyx.cpp
+https://github.com/ttlappalainen/NMEA2000_Teensyx
 
 
 ## License
