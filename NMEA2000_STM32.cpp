@@ -74,7 +74,7 @@ bool tNMEA2000_STM32::CANOpen() {
 	}
 
 
-	if (SetCANFilter( N2kCan, true, 0, 0x00000000, 0x00000000 ) != HAL_OK) {
+	if (SetN2kCANFilter( N2kCan, true, 0, 0x00000000, 0x00000000 ) != HAL_OK) {
 		ret = false;
 	}
 
@@ -248,37 +248,60 @@ HAL_StatusTypeDef tNMEA2000_STM32::N2kCAN_Init()
 	// CAN1000kbitPrescaler, TimeSeg1 and TimeSeg2 are configured for 1000 kbit/s @ defined clock speed
 	// Baud rate has to be dividable by 1000 (500, 250, 200, 125, 100...)
 
-	if (N2kCan == &hcan1) {CANinstance = CAN1; }
-	else if (N2kCan == &hcan2) {CANinstance = CAN2; }
-	else { return HAL_ERROR;
+	if (N2kCan == &hcan1) {
+		CANinstance = CAN1;
+	}
+	else if (N2kCan == &hcan2) {
+		CANinstance = CAN2;
+	}
+	else {
+		return HAL_ERROR;
+	}
 
-	uint32_t APB1 = HAL_RCC_GetPCLK1Freq();
-	if (APB1 == 24) {APB1clockSpeed = APB1_24mHz;}
-	else if (APB1 == 36) {APB1clockSpeed = APB1_36mHz;}
-	else if (APB1 == 42) {APB1clockSpeed = APB1_42mHz;}
-	else if (APB1 == 48) {APB1clockSpeed = APB1_48mHz;}
+	uint32_t CAN1000kbitPrescaler;
+	uint32_t CANtimeSeg1;
+	uint32_t CANtimeSeg2;
 
-	static const uint32_t CAN1000kbitPrescaler[] = {2, //clockSpeed_24mHz (SP 91,7%)
-													2, //clockSpeed_36mHz (SP 88.9%)
-													3, //clockSpeed_42mHz (SP 85.7%)
-													3};//clockSpeed_48mHz (SP 91.7%)
 
-	static const uint32_t CANtimeSeg1[] = {	CAN_BS1_10TQ, //clockSpeed_24mHz
-											CAN_BS1_15TQ, //clockSpeed_36mHz
-											CAN_BS1_11TQ, //clockSpeed_42mHz
-											CAN_BS1_13TQ};//clockSpeed_48mHz
+	// usually the APB1 clock is running at the following speed if max clock frequencies are used:
+	// STM32F103/105/107   36'000'000 Hz
+	// STM32F405/407       42 000'000 Hz
+	uint32_t APB1clockSpeed = HAL_RCC_GetPCLK1Freq();
 
-	static const uint32_t CANtimeSeg2[] = {	CAN_BS2_1TQ, //clockSpeed_24mHz
-											CAN_BS2_2TQ, //clockSpeed_36mHz
-											CAN_BS2_2TQ, //clockSpeed_42mHz
-											CAN_BS2_2TQ};//clockSpeed_48mHz
+	if (APB1clockSpeed == 24000000) {
+		CAN1000kbitPrescaler = 2;
+		CANtimeSeg1 = CAN_BS1_10TQ;
+		CANtimeSeg2 = CAN_BS2_1TQ;
+	}
+	else if (APB1clockSpeed == 36000000) {
+		CAN1000kbitPrescaler = 2;
+		CANtimeSeg1 = CAN_BS1_15TQ;
+		CANtimeSeg2 = CAN_BS2_2TQ;
+	}
+	else if (APB1clockSpeed == 42000000) {
+		CAN1000kbitPrescaler = 3;
+		CANtimeSeg1 = CAN_BS1_11TQ;
+		CANtimeSeg2 = CAN_BS2_2TQ;
+	}
+	else if (APB1clockSpeed == 48000000) {
+		CAN1000kbitPrescaler = 3;
+		CANtimeSeg1 = CAN_BS1_13TQ;
+		CANtimeSeg2 = CAN_BS2_2TQ;
+	}
+	else {
+		// There are no settings four your ABT1 clock speed yet!
+		// On the following website you can find a matching prescaler, TS1 and TS2
+		// Add the values for your clock speed and 1000kbit/s
+		// http://www.bittiming.can-wiki.info/?CLK=36&ctype=bxCAN&SamplePoint=87.5
+		return HAL_ERROR;
+	}
 
 	N2kCan->Instance = CANinstance;
-	N2kCan->Init.Prescaler = CAN1000kbitPrescaler[APB1clockSpeed] * 1000 / CANbaudRate;
+	N2kCan->Init.Prescaler = CAN1000kbitPrescaler * 1000 / CANbaudRate;
 	N2kCan->Init.Mode = CAN_MODE_NORMAL;
 	N2kCan->Init.SyncJumpWidth = CAN_SJW_1TQ;
-	N2kCan->Init.TimeSeg1 = CANtimeSeg1[APB1clockSpeed];
-	N2kCan->Init.TimeSeg2 = CANtimeSeg2[APB1clockSpeed];
+	N2kCan->Init.TimeSeg1 = CANtimeSeg1;
+	N2kCan->Init.TimeSeg2 = CANtimeSeg2;
 	N2kCan->Init.TimeTriggeredMode = DISABLE;
 	N2kCan->Init.AutoBusOff = DISABLE;
 	N2kCan->Init.AutoWakeUp = DISABLE;
@@ -298,7 +321,7 @@ HAL_StatusTypeDef tNMEA2000_STM32::N2kCAN_Init()
   * @param  Filter uint32_t CAN identifier
   * @retval success or not
   */
-HAL_StatusTypeDef tNMEA2000_STM32::SetCANFilter( CAN_HandleTypeDef *hcan, bool ExtendedIdentifier, uint32_t FilterNum, uint32_t Mask, uint32_t Filter )
+HAL_StatusTypeDef tNMEA2000_STM32::SetN2kCANFilter( CAN_HandleTypeDef *hcan, bool ExtendedIdentifier, uint32_t FilterNum, uint32_t Mask, uint32_t Filter )
 {
 	HAL_StatusTypeDef ret = HAL_ERROR;
 

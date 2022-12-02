@@ -11,7 +11,7 @@ Might also works with F103 / F107 / F405 / F407... and other STM32 MCU's with in
   - STM32 HAL for your MCU
 
 
-  Configure the CAN bus in STM23CubeIDE:
+  If your designing your own hardware with STM32 MCU configure the CAN bus in STM23CubeIDE:
   - activate CAN
   - Configure CAN bus GPIO pins
   - External clock settings of your MCU

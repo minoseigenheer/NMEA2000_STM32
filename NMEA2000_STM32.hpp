@@ -53,16 +53,19 @@ based setup. See also NMEA2000 library.
 #include "RingBuffer.hpp"
 
 
+extern CAN_HandleTypeDef hcan1;
+extern CAN_HandleTypeDef hcan2;
+
 class tNMEA2000_STM32 : public tNMEA2000 {
+
+  public:
+	tNMEA2000_STM32(CAN_HandleTypeDef *_N2kCan);
 
   protected:
     bool CANSendFrame(unsigned long id, unsigned char len, const unsigned char* buf, bool wait_sent = true);
     bool CANOpen();
     bool CANGetFrame(unsigned long& id, unsigned char& len, unsigned char* buf);
     void InitCANFrameBuffers();
-
-  public:
-	tNMEA2000_STM32(CAN_HandleTypeDef *_N2kCan);
 
   protected:
 	CAN_HandleTypeDef *N2kCan;
@@ -80,11 +83,6 @@ class tNMEA2000_STM32 : public tNMEA2000 {
 
 	CAN_TypeDef *CANinstance;
 
-	enum APB1clock_t { APB1clock_24mHz = 0, // STM32F???
-					   APB1clock_36mHz = 1, // STM32F103
-					   APB1clock_42mHz = 3, // STM32F405/407
-					   APB1clock_48mHz = 2};// STM32F105/107
-	APB1clock_t APB1clockSpeed;
 
   protected:
     struct CAN_message_t {
@@ -112,8 +110,8 @@ class tNMEA2000_STM32 : public tNMEA2000 {
     bool sendFromTxRing(uint8_t prio);
     bool CANwriteTxMailbox(unsigned long id, unsigned char len, const unsigned char *buf, bool extended);
 
-    static HAL_StatusTypeDef N2kCAN_Init();
-    static HAL_StatusTypeDef SetCANFilter( CAN_HandleTypeDef *hcan, bool ExtendedIdentifier, uint32_t FilterNum, uint32_t Mask, uint32_t Filter );
+    HAL_StatusTypeDef N2kCAN_Init();
+    HAL_StatusTypeDef SetN2kCANFilter( CAN_HandleTypeDef *hcan, bool ExtendedIdentifier, uint32_t FilterNum, uint32_t Mask, uint32_t Filter );
 
   public:
     void CANreadTxMailbox(CAN_HandleTypeDef *hcan);
