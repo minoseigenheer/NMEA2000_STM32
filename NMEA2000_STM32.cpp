@@ -87,8 +87,8 @@ bool tNMEA2000_STM32::CANSendFrame(unsigned long id, unsigned char len, const un
 	uint8_t prio = (uint8_t)((id >> 26) & 0x7);
 	bool ret = false;
 
-	//This interrupt deactivation does nothing because the TX mailboxes get not filled by interrupt!
-	//HAL_CAN_DeactivateNotification(N2kCan, CAN_IT_TX_MAILBOX_EMPTY);
+	//This interrupt deactivation does probably nothing because the TX mailboxes get not filled by interrupt!
+	HAL_CAN_DeactivateNotification(N2kCan, CAN_IT_TX_MAILBOX_EMPTY);
 
 	bool TxMailboxesFull = HAL_CAN_GetTxMailboxesFreeLevel(N2kCan) == 0;
 	bool SendFromBuffer = false;
@@ -117,7 +117,7 @@ bool tNMEA2000_STM32::CANSendFrame(unsigned long id, unsigned char len, const un
 		/* transmit entry accepted */
 	}
 
-	//HAL_CAN_ActivateNotification(N2kCan, CAN_IT_TX_MAILBOX_EMPTY);
+	HAL_CAN_ActivateNotification(N2kCan, CAN_IT_TX_MAILBOX_EMPTY);
 
 	return ret;
 }
@@ -211,7 +211,7 @@ bool tNMEA2000_STM32::sendFromTxRing(uint8_t prio) {
 }
 
 // *****************************************************************************
-void tNMEA2000_STM32::CANreadTxMailbox(CAN_HandleTypeDef *hcan) {
+void tNMEA2000_STM32::CANreadRxMailbox(CAN_HandleTypeDef *hcan) {
 	CAN_message_t *rxMsg;
 	uint8_t prio;
 
@@ -248,15 +248,25 @@ HAL_StatusTypeDef tNMEA2000_STM32::N2kCAN_Init()
 	// CAN1000kbitPrescaler, TimeSeg1 and TimeSeg2 are configured for 1000 kbit/s @ defined clock speed
 	// Baud rate has to be dividable by 1000 (500, 250, 200, 125, 100...)
 
+#ifdef CAN1
 	if (N2kCan == &hcan1) {
 		CANinstance = CAN1;
 	}
+#ifdef CAN2
 	else if (N2kCan == &hcan2) {
 		CANinstance = CAN2;
 	}
+#endif
+#ifdef CAN3
+	else if (N2kCan == &hcan3) {
+		CANinstance = CAN3;
+	}
+#endif
 	else {
+		// CAN_HandleTypeDef *hcan is unknown
 		return HAL_ERROR;
 	}
+#endif
 
 	uint32_t CAN1000kbitPrescaler;
 	uint32_t CANtimeSeg1;
@@ -385,52 +395,13 @@ HAL_StatusTypeDef tNMEA2000_STM32::SetN2kCANFilter( CAN_HandleTypeDef *hcan, boo
 }
 
 
-/*
- * use this HAL function instead!
- * HAL_CAN_ActivateNotification(N2kCan, CAN_IT_TX_MAILBOX_EMPTY);
- *
-void tNMEA2000_STM32::DisableIRQ_CAN_RX() {
-	if (N2kCan->Instance == CAN1) {
-		NVIC_DisableIRQ(CAN1_RX1_IRQn);
-	}
-	else if (N2kCan->Instance == CAN2) {
-		NVIC_DisableIRQ(CAN2_RX1_IRQn);
-	}
-}
-void tNMEA2000_STM32::EnableIRQ_CAN_RX() {
-	if (N2kCan->Instance == CAN1) {
-		NVIC_EnableIRQ(CAN1_RX1_IRQn);
-	}
-	else if (N2kCan->Instance == CAN2) {
-		NVIC_EnableIRQ(CAN2_RX1_IRQn);
-	}
-}
-void tNMEA2000_STM32::DisableIRQ_CAN_TX() {
-	if (N2kCan->Instance == CAN1) {
-		NVIC_DisableIRQ(CAN1_TX_IRQn);
-	}
-	else if (N2kCan->Instance == CAN2) {
-		NVIC_DisableIRQ(CAN2_TX_IRQn);
-	}
-}
-void tNMEA2000_STM32::EnableIRQ_CAN_TX() {
-	if (N2kCan->Instance == CAN1) {
-		NVIC_EnableIRQ(CAN1_TX_IRQn);
-	}
-	else if (N2kCan->Instance == CAN2) {
-		NVIC_EnableIRQ(CAN2_TX_IRQn);
-	}
-}
-*/
-
-
 // *****************************************************************************
 
 
 void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
 	// Call rxInterrupt method of the last tNMEA2000_STM32 instance.
-	NMEA2000_STM32_instance->CANreadTxMailbox(hcan);
+	NMEA2000_STM32_instance->CANreadRxMailbox(hcan);
 }
 
 // *****************************************************************************

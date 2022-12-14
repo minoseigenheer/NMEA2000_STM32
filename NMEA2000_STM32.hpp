@@ -48,9 +48,9 @@ based setup. See also NMEA2000 library.
 #include <stdio.h>
 #include <stdbool.h>
 
-#include "NMEA2000.hpp"
-#include "N2kMsg.hpp"
-#include "RingBuffer.hpp"
+#include "NMEA2000.h"
+#include "N2kMsg.h"
+#include "RingBuffer.h"
 
 
 extern CAN_HandleTypeDef hcan1;
@@ -114,7 +114,7 @@ class tNMEA2000_STM32 : public tNMEA2000 {
     HAL_StatusTypeDef SetN2kCANFilter( CAN_HandleTypeDef *hcan, bool ExtendedIdentifier, uint32_t FilterNum, uint32_t Mask, uint32_t Filter );
 
   public:
-    void CANreadTxMailbox(CAN_HandleTypeDef *hcan);
+    void CANreadRxMailbox(CAN_HandleTypeDef *hcan);
 
 
 };
