@@ -1,23 +1,23 @@
 # NMEA2000_STM32 CAN library
 
 
-Designed for STM32F105 CAN gateway. \
-https://github.com/BitterAndReal/STM32_NMEA2000_CAN_gateway \
+Designed for STM32F105 CAN gateway.
+https://github.com/BitterAndReal/STM32_NMEA2000_CAN_gateway
 Might also works with F103 / F107 / F405 / F407... and other STM32 MCU's with integrated CAN controller.
 
 
-## To use this library, you will also need:
+### To use this library, you will also need:
   - NMEA2000 library https://github.com/ttlappalainen/NMEA2000
   - STM32 HAL for your MCU
 
 
-## STM23CubeIDE settings for your own hardware with STM32 MCU:
+### STM23CubeIDE settings 
+If you are not very experienced with STM23CubeIDE this guide can help to configure a project for your own STM32 based hardware.
   - Create a STM32 C++ project in STM23CubeIDE
-  - Select your STM32 MCU which will add the correct HAL to your project.
+  - Select your MCU which will add the correct HAL to your project.
   - We can not directly call C++ from the main.c
-    - Create application.cpp & application.hpp files with your C++ project setup() and loop() which are called from with extern "C" {...
-    - from there you can include "NMEA2000.h" & "NMEA2000_STM32.hpp" and do all the NMEA2000 stuff
-    - check https://github.com/ttlappalainen/NMEA2000/tree/master/Examples
+    - Create your own application.cpp & application.hpp files with your C++ project setup() and loop() which are called from with extern "C" {...
+    - from there you can include "NMEA2000.h" & "NMEA2000_STM32.hpp" and do all the NMEA2000 stuff. Check https://github.com/ttlappalainen/NMEA2000/tree/master/Examples for examples...
   - In Cube MX activate the CAN bus you want to use.
   - Configure external clock settings of your MCU. (CAN bus needs an external clock source!)
   - Enable the CAN RX1 interrupt in the NVIC settings
@@ -27,7 +27,7 @@ Might also works with F103 / F107 / F405 / F407... and other STM32 MCU's with in
     - Select your project in the Project Explorer.
     - go to: File > Properties > C/C++ Build > Settings > MCU G++ Compiler > Include paths
     - Add the NMEA2000 and NMEA_STM32 library folders to the included paths
-  - If you want to use the CAN init of the library, which sets the CAN baud rate and filters, disable the STM32CubeIDE generated code.\
+  - If you want to use the CAN init of the library, which sets the CAN baud rate and filters, disable the STM32CubeIDE generated code.
     Under “Project Manager” > “Advanced Settings” find MX_CAN?_Init” and enable “Do Not Generate Function Call”.
    
   By default, the peripheral MSP initialization function (in stm32xxx_hal_msp.c) is 
@@ -40,7 +40,7 @@ Might also works with F103 / F107 / F405 / F407... and other STM32 MCU's with in
   
 
 
-Thanks for the great NMEA2000 CAN lib example Teensyx by ttlappalainen.+
+Thanks for the great NMEA2000 CAN lib example Teensyx by ttlappalainen.
 https://github.com/ttlappalainen/NMEA2000_Teensyx
 
 
@@ -68,17 +68,17 @@ https://github.com/ttlappalainen/NMEA2000_Teensyx
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
     THE SOFTWARE.
 
-  This library is free software; you can redistribute it and/or
-  modify it under the terms of the GNU Lesser General Public
-  License as published by the Free Software Foundation; either
-  version 2.1 of the License, or (at your option) any later version.
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2.1 of the License, or (at your option) any later version.
 
-  This library is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-  Lesser General Public License for more details.
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
 
-  You should have received a copy of the GNU Lesser General Public
-  License along with this library; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-
-  1301  USA
+    You should have received a copy of the GNU Lesser General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-
+    1301  USA
