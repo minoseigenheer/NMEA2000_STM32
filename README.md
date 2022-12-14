@@ -1,6 +1,5 @@
 # NMEA2000_STM32 CAN library
 
-
 Designed for STM32F105 CAN gateway.
 https://github.com/BitterAndReal/STM32_NMEA2000_CAN_gateway
 Might also works with F103 / F107 / F405 / F407... and other STM32 MCU's with integrated CAN controller.
@@ -10,40 +9,38 @@ Might also works with F103 / F107 / F405 / F407... and other STM32 MCU's with in
   - NMEA2000 library https://github.com/ttlappalainen/NMEA2000
   - STM32 HAL for your MCU
 
-
+---
 ### STM23CubeIDE settings 
 If you are not very experienced with STM23CubeIDE this guide can help to configure a project for your own STM32 based hardware.
   - Create a STM32 C++ project in STM23CubeIDE
   - Select your MCU which will add the correct HAL to your project.
   - We can not directly call C++ from the main.c
-    - Create your own application.cpp & application.hpp files with your C++ project setup() and loop() which are called from with extern "C" {...
-    - from there you can include "NMEA2000.h" & "NMEA2000_STM32.hpp" and do all the NMEA2000 stuff. Check https://github.com/ttlappalainen/NMEA2000/tree/master/Examples for examples...
-  - In Cube MX activate the CAN bus you want to use.
-  - Configure external clock settings of your MCU. (CAN bus needs an external clock source!)
+    > Create your own application.cpp & application.hpp files with your C++ project setup() and loop() which are called from with extern "C" {...
+    > From there you can include "NMEA2000.h" & "NMEA2000_STM32.hpp" and call the NMEA2000 methods. 
+  - In Cube MX configure external clock settings of your MCU. 
+    > CAN bus needs an external clock source!
+  - Activate the CAN bus you want to use.
   - Enable the CAN RX1 interrupt in the NVIC settings
   - Enable the CAN TX interrupt in the NVIC settings
   - Copy the NMEA2000 and NMEA_STM32 library's to your "Libs" folders of your STM32Cube project. (or use linked folders)
   - Add the folders to the G++ compiler include paths:
-    - Select your project in the Project Explorer.
-    - go to: File > Properties > C/C++ Build > Settings > MCU G++ Compiler > Include paths
-    - Add the NMEA2000 and NMEA_STM32 library folders to the included paths
+    > - Select your project in the Project Explorer.
+    > - go to: File > Properties > C/C++ Build > Settings > MCU G++ Compiler > Include paths
+    > - Add the NMEA2000 and NMEA_STM32 library folders to the included paths
   - If you want to use the CAN init of the library, which sets the CAN baud rate and filters, disable the STM32CubeIDE generated code.
-    Under “Project Manager” > “Advanced Settings” find MX_CAN?_Init” and enable “Do Not Generate Function Call”.
-   
-  By default, the peripheral MSP initialization function (in stm32xxx_hal_msp.c) is 
-  automatically called and takes care of the following setup:
-  - configuration of the CAN_RX/TX GPIOs
-  - enabling of the peripheral clock
-  - enabling of the CAN interrupts
+    > Navigate to “Project Manager” > “Advanced Settings” find MX_CAN#_Init” 
+    > and enable “Do Not Generate Function Call”.
+  - By default, the peripheral MSP initialization function (in stm32xxx_hal_msp.c) is automatically called and takes care of the following setup:
+    - configuration of the CAN_RX/TX GPIOs
+    - enabling of the peripheral clock
+    - enabling of the CAN interrupts
+  - Check the following link for NMEA2000 examples. https://github.com/ttlappalainen/NMEA2000/tree/master/Examples
 
-    
-  
-
-
+---
 Thanks for the great NMEA2000 CAN lib example Teensyx by ttlappalainen.
 https://github.com/ttlappalainen/NMEA2000_Teensyx
 
-
+---
 ## License
 
     The MIT License
