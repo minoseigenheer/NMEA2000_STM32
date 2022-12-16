@@ -63,18 +63,20 @@ bool tNMEA2000_STM32::CANOpen() {
 		ret = false;
 	}
 
-	// Enable CAN
-	if (HAL_CAN_Start(N2kCan) != HAL_OK) {
-		ret = false;
-	}
-
 	// activate CAN callback 1 interrupt for NMEA2000 CAN bus
 	if (HAL_CAN_ActivateNotification(N2kCan, CAN_IT_RX_FIFO1_MSG_PENDING) != HAL_OK) {
 		ret = false;
 	}
-
+	if (HAL_CAN_ActivateNotification(N2kCan, CAN_IT_TX_MAILBOX_EMPTY) != HAL_OK) {
+		ret = false;
+	}
 
 	if (SetN2kCANFilter( N2kCan, true, 0, 0x00000000, 0x00000000 ) != HAL_OK) {
+		ret = false;
+	}
+
+	// Enable CAN
+	if (HAL_CAN_Start(N2kCan) != HAL_OK) {
 		ret = false;
 	}
 
@@ -87,7 +89,7 @@ bool tNMEA2000_STM32::CANSendFrame(unsigned long id, unsigned char len, const un
 	uint8_t prio = (uint8_t)((id >> 26) & 0x7);
 	bool ret = false;
 
-	//This interrupt deactivation does probably nothing because the TX mailboxes get not filled by interrupt!
+	//TODO fill TX mailbox by TX_MAILBOX_EMPTY interrupt
 	HAL_CAN_DeactivateNotification(N2kCan, CAN_IT_TX_MAILBOX_EMPTY);
 
 	bool TxMailboxesFull = HAL_CAN_GetTxMailboxesFreeLevel(N2kCan) == 0;
@@ -248,6 +250,7 @@ HAL_StatusTypeDef tNMEA2000_STM32::N2kCAN_Init()
 	// CAN1000kbitPrescaler, TimeSeg1 and TimeSeg2 are configured for 1000 kbit/s @ defined clock speed
 	// Baud rate has to be dividable by 1000 (500, 250, 200, 125, 100...)
 
+	CAN_TypeDef *CANinstance;
 #ifdef CAN1
 	if (N2kCan == &hcan1) {
 		CANinstance = CAN1;
@@ -404,6 +407,11 @@ void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	NMEA2000_STM32_instance->CANreadRxMailbox(hcan);
 }
 
+void HAL_CAN_TxMailbox1CompleteCallback(CAN_HandleTypeDef *hcan)
+{
+	// Call TX Interrupt method
+	CAN_STM32_instance->sendFromTxRing(0xFF); // send message with highest priority on ring buffer
+}
 // *****************************************************************************
 //	Other 'Bridge' functions
 

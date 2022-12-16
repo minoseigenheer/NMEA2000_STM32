@@ -55,6 +55,7 @@ based setup. See also NMEA2000 library.
 
 extern CAN_HandleTypeDef hcan1;
 extern CAN_HandleTypeDef hcan2;
+extern CAN_HandleTypeDef hcan3;
 
 class tNMEA2000_STM32 : public tNMEA2000 {
 
@@ -80,8 +81,6 @@ class tNMEA2000_STM32 : public tNMEA2000 {
 
 	const uint32_t CANbaudRate = 250; // NMEA2000 works with 250 kbit/s
 	const uint32_t RX_FIFO = CAN_RX_FIFO1;
-
-	CAN_TypeDef *CANinstance;
 
 
   protected:
