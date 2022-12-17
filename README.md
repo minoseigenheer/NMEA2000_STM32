@@ -11,7 +11,7 @@ Might also works with F103 / F107 / F405 / F407... and other STM32 MCU's with in
 
 ### Examples
 - [STM32CubeIDE NMEA2000 battery project example](https://github.com/BitterAndReal/STM32_NMEA2000_CAN_gateway/tree/main/STM32CubeIDE%20NMEA2000%20battery%20example)
-  > Import projet into your STM32CubeIDE workspace
+  > Import project into your STM32CubeIDE workspace
 ---
 ### STM23CubeIDE setup 
 If you are not very experienced with STM23CubeIDE this guide can help to configure a project for your own STM32 based hardware.

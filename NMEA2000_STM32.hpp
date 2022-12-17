@@ -106,14 +106,14 @@ class tNMEA2000_STM32 : public tNMEA2000 {
     tPriorityRingBuffer<CAN_message_t>  *txRing;
     uint8_t firstTxBox;
 
-    bool sendFromTxRing(uint8_t prio);
     bool CANwriteTxMailbox(unsigned long id, unsigned char len, const unsigned char *buf, bool extended);
 
     HAL_StatusTypeDef N2kCAN_Init();
-    HAL_StatusTypeDef SetN2kCANFilter( CAN_HandleTypeDef *hcan, bool ExtendedIdentifier, uint32_t FilterNum, uint32_t Mask, uint32_t Filter );
+    HAL_StatusTypeDef SetN2kCANFilter( bool ExtendedIdentifier, uint32_t FilterNum, uint32_t Mask, uint32_t Filter );
 
   public:
     void CANreadRxMailbox(CAN_HandleTypeDef *hcan);
+    bool sendFromTxRing(uint8_t prio);
 
 
 };

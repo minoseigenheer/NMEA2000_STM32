@@ -71,7 +71,7 @@ bool tNMEA2000_STM32::CANOpen() {
 		ret = false;
 	}
 
-	if (SetN2kCANFilter( N2kCan, true, 0, 0x00000000, 0x00000000 ) != HAL_OK) {
+	if (SetN2kCANFilter( true, 0, 0x00000000, 0x00000000 ) != HAL_OK) {
 		ret = false;
 	}
 
@@ -320,21 +320,20 @@ HAL_StatusTypeDef tNMEA2000_STM32::N2kCAN_Init()
 	N2kCan->Init.AutoWakeUp = DISABLE;
 	N2kCan->Init.AutoRetransmission = DISABLE;
 	N2kCan->Init.ReceiveFifoLocked = DISABLE;
-	N2kCan->Init.TransmitFifoPriority = DISABLE;
+	N2kCan->Init.TransmitFifoPriority = ENABLE;
 
 	return HAL_CAN_Init(N2kCan);
 }
 
 /*******************************************************************************
   * @brief  Set STM32 HAL CAN filter
-  * @param  hcan CAN_HandleTypeDef pointer to CAN instance
   * @param  ExtendedIdentifier: 0 = normal CAN identifier; 1 = extended CAN identifier
   * @param  FilterNum CAN bus filter number for this CAN bus 0...13 / 0...27
   * @param  Mask uint32_t bit mask
   * @param  Filter uint32_t CAN identifier
   * @retval success or not
   */
-HAL_StatusTypeDef tNMEA2000_STM32::SetN2kCANFilter( CAN_HandleTypeDef *hcan, bool ExtendedIdentifier, uint32_t FilterNum, uint32_t Mask, uint32_t Filter )
+HAL_StatusTypeDef tNMEA2000_STM32::SetN2kCANFilter( bool ExtendedIdentifier, uint32_t FilterNum, uint32_t Mask, uint32_t Filter )
 {
 	HAL_StatusTypeDef ret = HAL_ERROR;
 
@@ -354,18 +353,18 @@ HAL_StatusTypeDef tNMEA2000_STM32::SetN2kCANFilter( CAN_HandleTypeDef *hcan, boo
 	#endif
 
 	int32_t FilterBank = -1;
-	if (hcan->Instance == CAN1
+	if (N2kCan->Instance == CAN1
 			&& FilterNum <= TotalFilterBanks
 			&& FilterNum < SlaveStartFilterBank ) {
 		FilterBank = FilterNum;
 	}
-	else if (hcan->Instance == CAN2
+	else if (N2kCan->Instance == CAN2
 			&& FilterNum <= TotalFilterBanks - SlaveStartFilterBank) {
 		FilterBank = FilterNum + SlaveStartFilterBank;
 	}
 
 	if ( FilterBank >= 0
-			&& IS_CAN_ALL_INSTANCE(hcan->Instance) )
+			&& IS_CAN_ALL_INSTANCE(N2kCan->Instance) )
 	{
 		CAN_FilterTypeDef sFilterConfig;
 
@@ -392,7 +391,7 @@ HAL_StatusTypeDef tNMEA2000_STM32::SetN2kCANFilter( CAN_HandleTypeDef *hcan, boo
 		sFilterConfig.FilterActivation = CAN_FILTER_ENABLE;
 		sFilterConfig.SlaveStartFilterBank = SlaveStartFilterBank; // CAN 0: 0...13 // CAN 1: 14...27 (28 filter banks in total)
 
-		ret = HAL_CAN_ConfigFilter(hcan, &sFilterConfig);
+		ret = HAL_CAN_ConfigFilter(N2kCan, &sFilterConfig);
 	}
 	return ret;
 }
@@ -410,7 +409,7 @@ void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)
 void HAL_CAN_TxMailbox1CompleteCallback(CAN_HandleTypeDef *hcan)
 {
 	// Call TX Interrupt method
-	CAN_STM32_instance->sendFromTxRing(0xFF); // send message with highest priority on ring buffer
+	NMEA2000_STM32_instance->sendFromTxRing(0xFF); // send message with highest priority on ring buffer
 }
 // *****************************************************************************
 //	Other 'Bridge' functions
