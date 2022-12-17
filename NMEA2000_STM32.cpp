@@ -87,6 +87,15 @@ bool tNMEA2000_STM32::CANOpen() {
 bool tNMEA2000_STM32::CANSendFrame(unsigned long id, unsigned char len, const unsigned char* buf, bool wait_sent) {
 	//TODO wait_sent
 	uint8_t prio = (uint8_t)((id >> 26) & 0x7);
+
+	//TODO use lowest CAN ID priority in the TX mailboxes
+	//Problem is I can't chose mailbox !!!
+	//uint32_t mailbox;
+	//if      (prio <= 2) {mailbox = CAN_TX_MAILBOX0;}
+	//else if (prio <= 4) {mailbox = CAN_TX_MAILBOX1;}
+	//else                {mailbox = CAN_TX_MAILBOX2;}
+	//bool TxMessagePending = HAL_CAN_IsTxMessagePending(N2kCan, mailbox);
+
 	bool ret = false;
 
 	//TODO fill TX mailbox by TX_MAILBOX_EMPTY interrupt
@@ -203,7 +212,7 @@ bool tNMEA2000_STM32::CANwriteTxMailbox(unsigned long id, unsigned char len, con
 bool tNMEA2000_STM32::sendFromTxRing(uint8_t prio) {
 	const CAN_message_t *txMsg;
 
-	txMsg = txRing->getReadRef(prio);
+	txMsg = txRing->getReadRef(0);//(prio);
 	if ( txMsg != 0 ) {
 		return CANwriteTxMailbox(txMsg->id, txMsg->len, txMsg->buf, txMsg->flags.extended);
 	} else {
@@ -409,7 +418,7 @@ void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)
 void HAL_CAN_TxMailbox1CompleteCallback(CAN_HandleTypeDef *hcan)
 {
 	// Call TX Interrupt method
-	NMEA2000_STM32_instance->sendFromTxRing(0xFF); // send message with highest priority on ring buffer
+	NMEA2000_STM32_instance->sendFromTxRing(0); // send message with highest priority on ring buffer
 }
 // *****************************************************************************
 //	Other 'Bridge' functions
