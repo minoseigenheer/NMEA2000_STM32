@@ -212,7 +212,7 @@ bool tNMEA2000_STM32::CANwriteTxMailbox(unsigned long id, unsigned char len, con
 bool tNMEA2000_STM32::sendFromTxRing(uint8_t prio) {
 	const CAN_message_t *txMsg;
 
-	txMsg = txRing->getReadRef(0);//(prio);
+	txMsg = txRing->getReadRef( (uint8_t)0 );//(prio);
 	if ( txMsg != 0 ) {
 		return CANwriteTxMailbox(txMsg->id, txMsg->len, txMsg->buf, txMsg->flags.extended);
 	} else {
