@@ -2,7 +2,7 @@
 
 Designed for STM32F105 CAN gateway.
 https://github.com/BitterAndReal/STM32_NMEA2000_CAN_gateway
-Might also works with F103 / F107 / F405 / F407... and other STM32 MCU's with integrated CAN controller.
+Might also works with F103 / F107 / F405 / F407... and other STM32 MCU's with integrated bxCAN controller.
 
 
 ### To use this library, you will also need:

@@ -98,7 +98,7 @@ bool tNMEA2000_STM32::CANSendFrame(unsigned long id, unsigned char len, const un
 
 	bool ret = false;
 
-	//TODO fill TX mailbox by TX_MAILBOX_EMPTY interrupt
+	//TODO fill TX mailbox by TX_MAILBOX_EMPTY interrupt //DONE
 	HAL_CAN_DeactivateNotification(N2kCan, CAN_IT_TX_MAILBOX_EMPTY);
 
 	bool TxMailboxesFull = HAL_CAN_GetTxMailboxesFreeLevel(N2kCan) == 0;
@@ -121,7 +121,7 @@ bool tNMEA2000_STM32::CANSendFrame(unsigned long id, unsigned char len, const un
 
 	if ( !TxMailboxesFull ) {
 		if ( SendFromBuffer ) {
-			ret = sendFromTxRing(prio);
+			ret = sendFromTxRing();
 		} else {
 			ret = CANwriteTxMailbox(id, len, buf, 1);
 		}
@@ -209,10 +209,9 @@ bool tNMEA2000_STM32::CANwriteTxMailbox(unsigned long id, unsigned char len, con
 }
 
 // *****************************************************************************
-bool tNMEA2000_STM32::sendFromTxRing(uint8_t prio) {
+bool tNMEA2000_STM32::sendFromTxRing() {
 	const CAN_message_t *txMsg;
-
-	txMsg = txRing->getReadRef( (uint8_t)0 );//(prio);
+	txMsg = txRing->getReadRef();//(prio); // TODO always get highest prio message from the buffer
 	if ( txMsg != 0 ) {
 		return CANwriteTxMailbox(txMsg->id, txMsg->len, txMsg->buf, txMsg->flags.extended);
 	} else {
@@ -415,10 +414,20 @@ void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	NMEA2000_STM32_instance->CANreadRxMailbox(hcan);
 }
 
+void HAL_CAN_TxMailbox0CompleteCallback(CAN_HandleTypeDef *hcan)
+{
+	// Call TX Interrupt method
+	NMEA2000_STM32_instance->sendFromTxRing(); // send message with highest priority on ring buffer
+}
 void HAL_CAN_TxMailbox1CompleteCallback(CAN_HandleTypeDef *hcan)
 {
 	// Call TX Interrupt method
-	NMEA2000_STM32_instance->sendFromTxRing(0); // send message with highest priority on ring buffer
+	NMEA2000_STM32_instance->sendFromTxRing(); // send message with highest priority on ring buffer
+}
+void HAL_CAN_TxMailbox2CompleteCallback(CAN_HandleTypeDef *hcan)
+{
+	// Call TX Interrupt method
+	NMEA2000_STM32_instance->sendFromTxRing(); // send message with highest priority on ring buffer
 }
 // *****************************************************************************
 //	Other 'Bridge' functions

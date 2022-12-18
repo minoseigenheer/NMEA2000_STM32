@@ -113,7 +113,7 @@ class tNMEA2000_STM32 : public tNMEA2000 {
 
   public:
     void CANreadRxMailbox(CAN_HandleTypeDef *hcan);
-    bool sendFromTxRing(uint8_t prio);
+    bool sendFromTxRing();
 
 
 };
