@@ -36,7 +36,6 @@
 
 #include "NMEA2000_STM32.hpp"
 
-
 static tNMEA2000_STM32 *NMEA2000_STM32_instance = 0;
 
 void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan);
@@ -211,7 +210,7 @@ bool tNMEA2000_STM32::CANwriteTxMailbox(unsigned long id, unsigned char len, con
 // *****************************************************************************
 bool tNMEA2000_STM32::sendFromTxRing() {
 	const CAN_message_t *txMsg;
-	txMsg = txRing->getReadRef();//(prio); // TODO always get highest prio message from the buffer
+	txMsg = txRing->getReadRef(); // always get highest prio message from the buffer
 	if ( txMsg != 0 ) {
 		return CANwriteTxMailbox(txMsg->id, txMsg->len, txMsg->buf, txMsg->flags.extended);
 	} else {
@@ -424,11 +423,18 @@ void HAL_CAN_TxMailbox1CompleteCallback(CAN_HandleTypeDef *hcan)
 	// Call TX Interrupt method
 	NMEA2000_STM32_instance->sendFromTxRing(); // send message with highest priority on ring buffer
 }
+
+// keep one mailbox callback for the non NMEA2000 CAN lib
+#include "CAN_STM32.hpp"
+#ifndef CAN_STM32_H_
+
 void HAL_CAN_TxMailbox2CompleteCallback(CAN_HandleTypeDef *hcan)
 {
 	// Call TX Interrupt method
 	NMEA2000_STM32_instance->sendFromTxRing(); // send message with highest priority on ring buffer
 }
+#endif
+
 // *****************************************************************************
 //	Other 'Bridge' functions
 
