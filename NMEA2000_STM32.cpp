@@ -71,15 +71,7 @@ bool tNMEA2000_STM32::CANOpen() {
 	bool ret = true;
 
 	// CAN initialisation instead of using the by the STM32cubeIDE configuration tool generated init function
-	if (N2kCAN_Init() != HAL_OK) {
-		ret = false;
-	}
-
-	// activate CAN callback 1 interrupt for NMEA2000 CAN bus
-	if (HAL_CAN_ActivateNotification(N2kCan, CAN_IT_RX_FIFO1_MSG_PENDING) != HAL_OK) {
-		ret = false;
-	}
-	if (HAL_CAN_ActivateNotification(N2kCan, CAN_IT_TX_MAILBOX_EMPTY) != HAL_OK) {
+	if (CANInit() != HAL_OK) {
 		ret = false;
 	}
 
@@ -94,7 +86,7 @@ bool tNMEA2000_STM32::CANOpen() {
 	}
 
 	// Enable CAN
-	if (HAL_CAN_Start(N2kCan) != HAL_OK) {
+	if (HAL_CAN_Start(canBus) != HAL_OK) {
 		ret = false;
 	}
 
@@ -114,14 +106,13 @@ bool tNMEA2000_STM32::CANSendFrame(unsigned long id, unsigned char len, const un
 	//if      (prio <= 2) {mailbox = CAN_TX_MAILBOX0;}
 	//else if (prio <= 4) {mailbox = CAN_TX_MAILBOX1;}
 	//else                {mailbox = CAN_TX_MAILBOX2;}
-	//bool TxMessagePending = HAL_CAN_IsTxMessagePending(N2kCan, mailbox);
+	//bool TxMessagePending = HAL_CAN_IsTxMessagePending(canBus, mailbox);
 
 	bool ret = false;
 
-	//TODO fill TX mailbox by TX_MAILBOX_EMPTY interrupt //DONE
-	HAL_CAN_DeactivateNotification(N2kCan, CAN_IT_TX_MAILBOX_EMPTY);
+	HAL_CAN_DeactivateNotification(canBus, CAN_IT_TX_MAILBOX_EMPTY);
 
-	bool TxMailboxesFull = HAL_CAN_GetTxMailboxesFreeLevel(N2kCan) == 0;
+	bool TxMailboxesFull = HAL_CAN_GetTxMailboxesFreeLevel(canBus) == 0;
 	bool SendFromBuffer = false;
 
 	// If TX buffer has already some frames waiting with higher prio or mailbox is full, buffer frame
@@ -142,24 +133,28 @@ bool tNMEA2000_STM32::CANSendFrame(unsigned long id, unsigned char len, const un
 
 	if ( !TxMailboxesFull ) {
 		if ( SendFromBuffer ) {
-			ret = sendFromTxRing();
+			ret = SendFromTxRing();
 		} else {
-			ret = CANwriteTxMailbox(id, len, buf, 1);
+			ret = CANWriteTxMailbox(id, len, buf, 1);
 		}
 		/* transmit entry accepted */
 	}
 
-	HAL_CAN_ActivateNotification(N2kCan, CAN_IT_TX_MAILBOX_EMPTY);
+	HAL_CAN_ActivateNotification(canBus, CAN_IT_TX_MAILBOX_EMPTY);
 
 	return ret;
 }
 
 //*****************************************************************************
+bool tNMEA2000_STM32::CANSendFrameStruct(tNMEA2000_STM32::CAN_message_t* message) {
+	return CANSendFrame(message->id, message->len, message->buf, message->flags.extended);
+}
+//*****************************************************************************
 bool tNMEA2000_STM32::CANGetFrame(unsigned long& id, unsigned char& len, unsigned char* buf) {
 
 	bool ret = false;
 
-	HAL_CAN_DeactivateNotification(N2kCan, CAN_IT_RX_FIFO1_MSG_PENDING);
+	HAL_CAN_DeactivateNotification(canBus, CAN_IT_RX_FIFO0_MSG_PENDING);
 
 	const CAN_message_t *msg = rxRing->getReadRef();
 	if ( msg!=0 ) {
@@ -170,7 +165,26 @@ bool tNMEA2000_STM32::CANGetFrame(unsigned long& id, unsigned char& len, unsigne
 	    ret = true;
 	}
 
-	HAL_CAN_ActivateNotification(N2kCan, CAN_IT_RX_FIFO1_MSG_PENDING);
+	HAL_CAN_ActivateNotification(canBus, CAN_IT_RX_FIFO0_MSG_PENDING);
+
+	return ret;
+
+}
+//*****************************************************************************
+bool tNMEA2000_STM32::CANGetFrameStruct(tNMEA2000_STM32::CAN_message_t* message) {
+
+	bool ret = false;
+
+	HAL_CAN_DeactivateNotification(canBus, CAN_IT_RX_FIFO0_MSG_PENDING);
+
+	const CAN_message_t *msg = rxRing->getReadRef();
+	if ( msg!=0 ) {
+	    //message = msg;
+	    memcpy(message, msg, sizeof(*msg));
+	    ret = true;
+	}
+
+	HAL_CAN_ActivateNotification(canBus, CAN_IT_RX_FIFO0_MSG_PENDING);
 
 	return ret;
 
@@ -203,7 +217,7 @@ void tNMEA2000_STM32::InitCANFrameBuffers() {
 }
 
 // *****************************************************************************
-bool tNMEA2000_STM32::CANwriteTxMailbox(unsigned long id, unsigned char len, const unsigned char *buf, bool extended) {
+bool tNMEA2000_STM32::CANWriteTxMailbox(unsigned long id, unsigned char len, const unsigned char *buf, bool extended) {
 
 	if (extended) {
 		CANTxHeader.IDE = CAN_ID_EXT;
@@ -223,7 +237,7 @@ bool tNMEA2000_STM32::CANwriteTxMailbox(unsigned long id, unsigned char len, con
 	//}
 
 	// send message
-	if (HAL_CAN_AddTxMessage(N2kCan, &CANTxHeader, CANTxdata, &CANTxMailbox) == HAL_OK) {
+	if (HAL_CAN_AddTxMessage(canBus, &CANTxHeader, CANTxdata, &CANTxMailbox) == HAL_OK) {
 		DbgPrintfSWD("Added frame to TX mailbox %lx", id);
 		return true;
 	} else {
@@ -233,11 +247,11 @@ bool tNMEA2000_STM32::CANwriteTxMailbox(unsigned long id, unsigned char len, con
 }
 
 // *****************************************************************************
-bool tNMEA2000_STM32::sendFromTxRing() {
+bool tNMEA2000_STM32::SendFromTxRing() {
 	const CAN_message_t *txMsg;
 	txMsg = txRing->getReadRef(); // always get highest prio message from the buffer
 	if ( txMsg != 0 ) {
-		return CANwriteTxMailbox(txMsg->id, txMsg->len, txMsg->buf, txMsg->flags.extended);
+		return CANWriteTxMailbox(txMsg->id, txMsg->len, txMsg->buf, txMsg->flags.extended);
 	} else {
 		return false;
 	}
@@ -245,12 +259,12 @@ bool tNMEA2000_STM32::sendFromTxRing() {
 }
 
 // *****************************************************************************
-void tNMEA2000_STM32::CANreadRxMailbox(CAN_HandleTypeDef *hcan) {
+void tNMEA2000_STM32::CANReadRxMailbox(CAN_HandleTypeDef *hcan, uint32_t CANRxFIFO) {
 	CAN_message_t *rxMsg;
 	uint8_t prio;
 
-	if (hcan == N2kCan) {
-		if (HAL_CAN_GetRxMessage(hcan, RX_FIFO, &CANRxHeader, CANRxdata) == HAL_OK) {
+	if (hcan == canBus) {
+		if (HAL_CAN_GetRxMessage(hcan, CANRxFIFO, &CANRxHeader, CANRxdata) == HAL_OK) {
 			prio = (uint8_t)((CANRxHeader.ExtId >> 26) & 0x7);
 			rxMsg = rxRing->getAddRef(prio);
 			if ( rxMsg!=0 ) {
@@ -264,39 +278,36 @@ void tNMEA2000_STM32::CANreadRxMailbox(CAN_HandleTypeDef *hcan) {
 			DbgPrintfSWD("Got CAN message %lx", rxMsg->id);
 		}
 	}
+
 	// I think we don't have to check the fifo fill level if we use interrups?
-	// HAL_CAN_GetRxFifoFillLevel(*N2kCan, CAN_RX_FIFO1);
+	// HAL_CAN_GetRxFifoFillLevel(*canBus, CAN_RX_FIFO1);
 
 }
 
 
 /**
   * @brief CAN Initialization Function
-  * @param hcan CAN_HandleTypeDef pointer to CAN instance
-  * @param CANinstance CAN_TypeDef pointer CAN1 or CAN2
-  * @param baudRate in kbit/s
-  * @param clockSpeed enum of the clock connected to the CAN controller (APB1 for STM32F105=48mHz)
   * @retval bool success or not
   */
-HAL_StatusTypeDef tNMEA2000_STM32::N2kCAN_Init()
+HAL_StatusTypeDef tNMEA2000_STM32::CANInit()
 {
 	// CAN1000kbitPrescaler, TimeSeg1 and TimeSeg2 are configured for 1000 kbit/s @ defined clock speed
 	// Baud rate has to be dividable by 1000 (500, 250, 200, 125, 100...)
 
 	CAN_TypeDef *CANinstance;
 #ifdef CAN1
-	if (N2kCan == &hcan1) {
+	if (canBus == &hcan1) {
 		CANinstance = CAN1;
 		DbgPrintfSWD("Init CAN 1");
 	}
 #ifdef CAN2
-	else if (N2kCan == &hcan2) {
+	else if (canBus == &hcan2) {
 		CANinstance = CAN2;
 		DbgPrintfSWD("Init CAN 2");
 	}
 #endif
 #ifdef CAN3
-	else if (N2kCan == &hcan3) {
+	else if (canBus == &hcan3) {
 		CANinstance = CAN3;
 		DbgPrintfSWD("Init CAN 3");
 	}
@@ -345,20 +356,20 @@ HAL_StatusTypeDef tNMEA2000_STM32::N2kCAN_Init()
 		return HAL_ERROR;
 	}
 
-	N2kCan->Instance = CANinstance;
-	N2kCan->Init.Prescaler = CAN1000kbitPrescaler * 1000 / CANbaudRate;
-	N2kCan->Init.Mode = CAN_MODE_NORMAL;
-	N2kCan->Init.SyncJumpWidth = CAN_SJW_1TQ;
-	N2kCan->Init.TimeSeg1 = CANtimeSeg1;
-	N2kCan->Init.TimeSeg2 = CANtimeSeg2;
-	N2kCan->Init.TimeTriggeredMode = DISABLE;
-	N2kCan->Init.AutoBusOff = DISABLE;
-	N2kCan->Init.AutoWakeUp = DISABLE;
-	N2kCan->Init.AutoRetransmission = DISABLE;
-	N2kCan->Init.ReceiveFifoLocked = DISABLE;
-	N2kCan->Init.TransmitFifoPriority = ENABLE;
+	canBus->Instance = CANinstance;
+	canBus->Init.Prescaler = (CAN1000kbitPrescaler * CANbaudRate);
+	canBus->Init.Mode = CAN_MODE_NORMAL;
+	canBus->Init.SyncJumpWidth = CAN_SJW_1TQ;
+	canBus->Init.TimeSeg1 = CANtimeSeg1;
+	canBus->Init.TimeSeg2 = CANtimeSeg2;
+	canBus->Init.TimeTriggeredMode = DISABLE;
+	canBus->Init.AutoBusOff = DISABLE;
+	canBus->Init.AutoWakeUp = DISABLE;
+	canBus->Init.AutoRetransmission = DISABLE;
+	canBus->Init.ReceiveFifoLocked = DISABLE;
+	canBus->Init.TransmitFifoPriority = ENABLE;
 
-	return HAL_CAN_Init(N2kCan);
+	return HAL_CAN_Init(canBus);
 }
 
 /*******************************************************************************
@@ -369,7 +380,7 @@ HAL_StatusTypeDef tNMEA2000_STM32::N2kCAN_Init()
   * @param  Filter uint32_t CAN identifier
   * @retval success or not
   */
-HAL_StatusTypeDef tNMEA2000_STM32::SetN2kCANFilter( bool ExtendedIdentifier, uint32_t FilterNum, uint32_t Mask, uint32_t Filter )
+HAL_StatusTypeDef tNMEA2000_STM32::SetCANFilter( bool ExtendedIdentifier, uint32_t FilterNum, uint32_t Mask, uint32_t Filter )
 {
 	HAL_StatusTypeDef ret = HAL_ERROR;
 
@@ -389,11 +400,12 @@ HAL_StatusTypeDef tNMEA2000_STM32::SetN2kCANFilter( bool ExtendedIdentifier, uin
 	#endif
 
 	int32_t FilterBank = -1;
-	if (N2kCan->Instance == CAN1
+	if (canBus->Instance == CAN1
 			&& FilterNum <= TotalFilterBanks
 			&& FilterNum < SlaveStartFilterBank ) {
 		FilterBank = FilterNum;
 	}
+	else if (canBus->Instance == CAN2
 			&& FilterNum <= TotalFilterBanks - SlaveStartFilterBank) {
 		FilterBank = FilterNum + SlaveStartFilterBank;
 	}
@@ -422,18 +434,17 @@ HAL_StatusTypeDef tNMEA2000_STM32::SetN2kCANFilter( bool ExtendedIdentifier, uin
 			sFilterConfig.FilterIdLow = (Filter << 3 & 0xFFF8) | (0x1 << 2); // EXTID[12:0] + IDE
 		}
 
-		sFilterConfig.FilterFIFOAssignment = 0;
+		sFilterConfig.FilterFIFOAssignment = CANRxFIFO;
 		sFilterConfig.FilterActivation = CAN_FILTER_ENABLE;
 		sFilterConfig.SlaveStartFilterBank = SlaveStartFilterBank; // CAN 0: 0...13 // CAN 1: 14...27 (28 filter banks in total)
 
-		ret = HAL_CAN_ConfigFilter(N2kCan, &sFilterConfig);
+		ret = HAL_CAN_ConfigFilter(canBus, &sFilterConfig);
 		DbgPrintfSWD("CAN filter bank %li mask: %lx, filter: %lx", FilterBank, Mask, Filter);
 	}
 	return ret;
 }
 
 
-// *****************************************************************************
 
 /*******************************************************************************
   * @brief  returns pointer to tNMEA2000_STM32 instance from certain CAN_HandleTypeDef struct
@@ -451,7 +462,7 @@ tNMEA2000_STM32* getInstance(CAN_HandleTypeDef *hcan)
 	return instance;
 }
 
-void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
 	getInstance(hcan)->CANReadRxMailbox(hcan, CAN_RX_FIFO0);
 	//NMEA2000_STM32_instance->CANReadRxMailbox(hcan);

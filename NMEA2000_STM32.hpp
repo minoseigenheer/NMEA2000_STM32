@@ -47,6 +47,7 @@ based setup. See also NMEA2000 library.
 #include <stdint.h>
 #include <stdio.h>
 #include <stdbool.h>
+//#include <string>
 #include <vector>
 
 #include "NMEA2000.h"
@@ -118,11 +119,11 @@ class tNMEA2000_STM32
 
     bool CANWriteTxMailbox(unsigned long id, unsigned char len, const unsigned char *buf, bool extended);
 
-    HAL_StatusTypeDef N2kCAN_Init();
-    HAL_StatusTypeDef SetN2kCANFilter( bool ExtendedIdentifier, uint32_t FilterNum, uint32_t Mask, uint32_t Filter );
 
   public:
     bool CANOpen();
+    HAL_StatusTypeDef CANInit();
+    HAL_StatusTypeDef SetCANFilter( bool ExtendedIdentifier, uint32_t FilterNum, uint32_t Mask, uint32_t Filter );
 
     bool CANSendFrame(unsigned long id, unsigned char len, const unsigned char* buf, bool wait_sent = true);
     bool CANSendFrameStruct(CAN_message_t* message);
@@ -135,6 +136,8 @@ class tNMEA2000_STM32
 
 };
 
+static std::vector<tNMEA2000_STM32 *> canInstances;
+tNMEA2000_STM32* getInstance(CAN_HandleTypeDef *hcan); // returns instance with certain CAN_HandleTypeDef struct
 
 //-----------------------------------------------------------------------------
 
