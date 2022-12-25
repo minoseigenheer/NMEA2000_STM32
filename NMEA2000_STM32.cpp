@@ -39,8 +39,20 @@
 static tNMEA2000_STM32 *NMEA2000_STM32_instance = 0;
 
 void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan);
+#define NMEA2000_STM32_DEBUG
+#define NMEA2000_STM32_DEBUG_ERRORS
 
+#if defined(NMEA2000_STM32_DEBUG)
+# define DbgPrintfSWD(fmt, args...)     printf(fmt, ## args); printf("\n")
+#else
+# define DbgPrintfSWD(fmt, args...)
+#endif
 
+#if defined(NMEA2000_STM32_DEBUG_ERRORS)
+# define DbgPrintfSWDErr(fmt, args...)     printf("#red#"); printf(fmt, ## args); printf("\n")
+#else
+# define DbgPrintfSWDErr(fmt, args...)
+#endif
 //*****************************************************************************
 tNMEA2000_STM32::tNMEA2000_STM32(CAN_HandleTypeDef *_N2kCan) :
 		tNMEA2000(), N2kCan(_N2kCan) {
@@ -71,6 +83,13 @@ bool tNMEA2000_STM32::CANOpen() {
 	}
 
 	if (SetN2kCANFilter( true, 0, 0x00000000, 0x00000000 ) != HAL_OK) {
+	// activate CAN callback interrupts
+	if (HAL_CAN_ActivateNotification(canBus,
+			CAN_IT_RX_FIFO0_MSG_PENDING |
+			CAN_IT_TX_MAILBOX_EMPTY |
+			CAN_IT_ERROR |
+			CAN_IT_ERROR_WARNING
+		) != HAL_OK) {
 		ret = false;
 	}
 
@@ -79,6 +98,7 @@ bool tNMEA2000_STM32::CANOpen() {
 		ret = false;
 	}
 
+	DbgPrintfSWD("CAN started");
 	return ret;
 }
 
@@ -114,6 +134,7 @@ bool tNMEA2000_STM32::CANSendFrame(unsigned long id, unsigned char len, const un
 			memcpy(msg->buf, buf, len);
 			ret = true;
 			//frame buffered
+			DbgPrintfSWD("frame buffered");
 		}
 		SendFromBuffer = true;
 	}
@@ -176,6 +197,8 @@ void tNMEA2000_STM32::InitCANFrameBuffers() {
   if ( rxRing == 0 ) rxRing=new tPriorityRingBuffer<CAN_message_t>(MaxCANReceiveFrames, 7);
   if ( txRing == 0 ) txRing=new tPriorityRingBuffer<CAN_message_t>(MaxCANSendFrames, 7);
 
+  DbgPrintfSWD("frame buffer initaialized");
+
 }
 
 // *****************************************************************************
@@ -200,6 +223,7 @@ bool tNMEA2000_STM32::CANwriteTxMailbox(unsigned long id, unsigned char len, con
 
 	// send message
 	if (HAL_CAN_AddTxMessage(N2kCan, &CANTxHeader, CANTxdata, &CANTxMailbox) == HAL_OK) {
+		DbgPrintfSWD("Added frame to TX mailbox %lx", id);
 		return true;
 	} else {
 		return false;
@@ -236,6 +260,7 @@ void tNMEA2000_STM32::CANreadRxMailbox(CAN_HandleTypeDef *hcan) {
 				rxMsg->id = CANRxHeader.ExtId;
 			}
 			memcpy(rxMsg->buf, CANRxdata, rxMsg->len);
+			DbgPrintfSWD("Got CAN message %lx", rxMsg->id);
 		}
 	}
 	// I think we don't have to check the fifo fill level if we use interrups?
@@ -261,15 +286,18 @@ HAL_StatusTypeDef tNMEA2000_STM32::N2kCAN_Init()
 #ifdef CAN1
 	if (N2kCan == &hcan1) {
 		CANinstance = CAN1;
+		DbgPrintfSWD("Init CAN 1");
 	}
 #ifdef CAN2
 	else if (N2kCan == &hcan2) {
 		CANinstance = CAN2;
+		DbgPrintfSWD("Init CAN 2");
 	}
 #endif
 #ifdef CAN3
 	else if (N2kCan == &hcan3) {
 		CANinstance = CAN3;
+		DbgPrintfSWD("Init CAN 3");
 	}
 #endif
 	else {
@@ -399,6 +427,7 @@ HAL_StatusTypeDef tNMEA2000_STM32::SetN2kCANFilter( bool ExtendedIdentifier, uin
 		sFilterConfig.SlaveStartFilterBank = SlaveStartFilterBank; // CAN 0: 0...13 // CAN 1: 14...27 (28 filter banks in total)
 
 		ret = HAL_CAN_ConfigFilter(N2kCan, &sFilterConfig);
+		DbgPrintfSWD("CAN filter bank %li mask: %lx, filter: %lx", FilterBank, Mask, Filter);
 	}
 	return ret;
 }
@@ -435,6 +464,35 @@ void HAL_CAN_TxMailbox2CompleteCallback(CAN_HandleTypeDef *hcan)
 }
 #endif
 
+void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan)
+{
+   uint32_t errorCode = hcan->ErrorCode;
+
+   if(errorCode & HAL_CAN_ERROR_NONE)            {DbgPrintfSWDErr("No error");}
+   if(errorCode & HAL_CAN_ERROR_EWG)             {DbgPrintfSWDErr("Protocol Error Warning");}
+   if(errorCode & HAL_CAN_ERROR_EPV)             {DbgPrintfSWDErr("Error Passive");}
+   if(errorCode & HAL_CAN_ERROR_BOF)             {DbgPrintfSWDErr("Bus-off error");}
+   if(errorCode & HAL_CAN_ERROR_STF)             {DbgPrintfSWDErr("Stuff error");}
+   if(errorCode & HAL_CAN_ERROR_FOR)             {DbgPrintfSWDErr("Form error");}
+   if(errorCode & HAL_CAN_ERROR_ACK)             {DbgPrintfSWDErr("Acknowledgment error");}
+   if(errorCode & HAL_CAN_ERROR_BR)              {DbgPrintfSWDErr("Bit recessive error");}
+   if(errorCode & HAL_CAN_ERROR_BD)              {DbgPrintfSWDErr("Bit dominant error");}
+   if(errorCode & HAL_CAN_ERROR_CRC)             {DbgPrintfSWDErr("CRC error");}
+   if(errorCode & HAL_CAN_ERROR_RX_FOV0)         {DbgPrintfSWDErr("Rx FIFO 0 overrun error");}
+   if(errorCode & HAL_CAN_ERROR_RX_FOV1)         {DbgPrintfSWDErr("Rx FIFO 1 overrun error");}
+   if(errorCode & HAL_CAN_ERROR_TX_ALST0)        {DbgPrintfSWDErr("TxMailbox 0 transmit failure due to arbitration lost");}
+   if(errorCode & HAL_CAN_ERROR_TX_TERR0)        {DbgPrintfSWDErr("TxMailbox 0 transmit failure due to transmit error");}
+   if(errorCode & HAL_CAN_ERROR_TX_ALST1)        {DbgPrintfSWDErr("TxMailbox 1 transmit failure due to arbitration lost");}
+   if(errorCode & HAL_CAN_ERROR_TX_TERR1)        {DbgPrintfSWDErr("TxMailbox 1 transmit failure due to transmit error");}
+   if(errorCode & HAL_CAN_ERROR_TX_ALST2)        {DbgPrintfSWDErr("TxMailbox 2 transmit failure due to arbitration lost");}
+   if(errorCode & HAL_CAN_ERROR_TX_TERR2)        {DbgPrintfSWDErr("TxMailbox 2 transmit failure due to transmit error");}
+   if(errorCode & HAL_CAN_ERROR_TIMEOUT)         {DbgPrintfSWDErr("Timeout error");}
+   if(errorCode & HAL_CAN_ERROR_NOT_INITIALIZED) {DbgPrintfSWDErr("Peripheral not initialized");}
+   if(errorCode & HAL_CAN_ERROR_NOT_READY)       {DbgPrintfSWDErr("Peripheral not ready");}
+   if(errorCode & HAL_CAN_ERROR_NOT_STARTED)     {DbgPrintfSWDErr("Peripheral not started");}
+   if(errorCode & HAL_CAN_ERROR_PARAM)           {DbgPrintfSWDErr("Parameter error");}
+
+}
 // *****************************************************************************
 //	Other 'Bridge' functions
 
