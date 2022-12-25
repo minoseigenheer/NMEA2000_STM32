@@ -507,4 +507,17 @@ uint32_t millis(void) {
 };
 
 
+//*****************************************************************************
+// switch printf() to the debug interface SWO (STM32 ARM debug)
+int _write(int file, char *ptr, int len) {
+  int DataIdx;
+  for (DataIdx = 0; DataIdx < len; DataIdx++) {
+    ITM_SendChar(*ptr++);
+  }
+  return len;
+}
+// N2kStream is using write() function
+int write(char *str, int len) {
+	return _write(0, str, len);
+}
 
