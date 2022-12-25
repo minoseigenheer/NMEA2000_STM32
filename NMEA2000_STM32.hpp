@@ -47,6 +47,7 @@ based setup. See also NMEA2000 library.
 #include <stdint.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <vector>
 
 #include "NMEA2000.h"
 #include "N2kMsg.h"
@@ -57,33 +58,27 @@ extern CAN_HandleTypeDef hcan1;
 extern CAN_HandleTypeDef hcan2;
 extern CAN_HandleTypeDef hcan3;
 
-class tNMEA2000_STM32 : public tNMEA2000 {
+
+class tNMEA2000_STM32
+#if defined(_NMEA2000_H_) // if we use NMEA2000 lib use this class as a child
+		: public tNMEA2000
+#endif
+{
 
   public:
-	tNMEA2000_STM32(CAN_HandleTypeDef *_N2kCan);
+    enum CANbaudRatePrescaler {
+    	CAN1000kbit = 1,
+    	CAN500kbit = 2,
+		CAN250kbit = 4,
+		CAN200kbit = 5,
+		CAN125kbit = 8,
+		CAN100kbit = 10,
+		CAN50kbit = 20
+    };
 
-  protected:
-    bool CANSendFrame(unsigned long id, unsigned char len, const unsigned char* buf, bool wait_sent = true);
-    bool CANOpen();
-    bool CANGetFrame(unsigned long& id, unsigned char& len, unsigned char* buf);
-    void InitCANFrameBuffers();
+  	tNMEA2000_STM32(CAN_HandleTypeDef *_canBus, CANbaudRatePrescaler _CANbaudRate);
+	CAN_HandleTypeDef *canBus;
 
-  protected:
-	CAN_HandleTypeDef *N2kCan;
-
-	CAN_TxHeaderTypeDef CANTxHeader;
-	CAN_RxHeaderTypeDef CANRxHeader;
-
-	uint8_t CANTxdata[8];
-	uint8_t CANRxdata[8];
-
-	uint32_t CANTxMailbox;
-
-	const uint32_t CANbaudRate = 250; // NMEA2000 works with 250 kbit/s
-	const uint32_t RX_FIFO = CAN_RX_FIFO1;
-
-
-  protected:
     struct CAN_message_t {
       uint32_t id = 0;          // can identifier
   //    uint16_t timestamp = 0;   // time when message arrived
@@ -101,19 +96,41 @@ class tNMEA2000_STM32 : public tNMEA2000 {
   //    bool seq = 0;         // sequential frames
     };
 
+  protected:
+    void InitCANFrameBuffers();
 
+	CAN_TxHeaderTypeDef CANTxHeader;
+	CAN_RxHeaderTypeDef CANRxHeader;
+
+	uint8_t CANTxdata[8];
+	uint8_t CANRxdata[8];
+
+	uint32_t CANTxMailbox;
+
+	const CANbaudRatePrescaler CANbaudRate;
+	uint32_t CANRxFIFO = CAN_RX_FIFO0; //  fpr now only use fifo 0
+
+
+  protected:
     tPriorityRingBuffer<CAN_message_t>  *rxRing;
     tPriorityRingBuffer<CAN_message_t>  *txRing;
     uint8_t firstTxBox;
 
-    bool CANwriteTxMailbox(unsigned long id, unsigned char len, const unsigned char *buf, bool extended);
+    bool CANWriteTxMailbox(unsigned long id, unsigned char len, const unsigned char *buf, bool extended);
 
     HAL_StatusTypeDef N2kCAN_Init();
     HAL_StatusTypeDef SetN2kCANFilter( bool ExtendedIdentifier, uint32_t FilterNum, uint32_t Mask, uint32_t Filter );
 
   public:
-    void CANreadRxMailbox(CAN_HandleTypeDef *hcan);
-    bool sendFromTxRing();
+    bool CANOpen();
+
+    bool CANSendFrame(unsigned long id, unsigned char len, const unsigned char* buf, bool wait_sent = true);
+    bool CANSendFrameStruct(CAN_message_t* message);
+    bool CANGetFrame(unsigned long& id, unsigned char& len, unsigned char* buf);
+    bool CANGetFrameStruct(CAN_message_t* message);
+
+    void CANReadRxMailbox(CAN_HandleTypeDef *hcan, uint32_t CANRxFIFO);
+    bool SendFromTxRing();
 
 
 };

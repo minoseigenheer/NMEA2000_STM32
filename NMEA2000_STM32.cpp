@@ -36,9 +36,6 @@
 
 #include "NMEA2000_STM32.hpp"
 
-static tNMEA2000_STM32 *NMEA2000_STM32_instance = 0;
-
-void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan);
 #define NMEA2000_STM32_DEBUG
 #define NMEA2000_STM32_DEBUG_ERRORS
 
@@ -54,15 +51,19 @@ void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan);
 # define DbgPrintfSWDErr(fmt, args...)
 #endif
 //*****************************************************************************
-tNMEA2000_STM32::tNMEA2000_STM32(CAN_HandleTypeDef *_N2kCan) :
-		tNMEA2000(), N2kCan(_N2kCan) {
+tNMEA2000_STM32::tNMEA2000_STM32(CAN_HandleTypeDef *_canBus, CANbaudRatePrescaler _CANbaudRate) :
+#if defined(_NMEA2000_H_)
+		tNMEA2000(),
+#endif
+		canBus(_canBus),
+		CANbaudRate(_CANbaudRate) {
 
-	NMEA2000_STM32_instance = this;
+	//NMEA2000_STM32_instance = this;
+	canInstances.push_back(this); // add this instance to canInstances
 
 	rxRing = 0;
 	txRing = 0;
 }
-
 
 //*****************************************************************************
 bool tNMEA2000_STM32::CANOpen() {
@@ -82,7 +83,6 @@ bool tNMEA2000_STM32::CANOpen() {
 		ret = false;
 	}
 
-	if (SetN2kCANFilter( true, 0, 0x00000000, 0x00000000 ) != HAL_OK) {
 	// activate CAN callback interrupts
 	if (HAL_CAN_ActivateNotification(canBus,
 			CAN_IT_RX_FIFO0_MSG_PENDING |
@@ -108,7 +108,8 @@ bool tNMEA2000_STM32::CANSendFrame(unsigned long id, unsigned char len, const un
 	uint8_t prio = (uint8_t)((id >> 26) & 0x7);
 
 	//TODO use lowest CAN ID priority in the TX mailboxes
-	//Problem is I can't chose mailbox !!!
+	//Problem is I can't chose mailbox with HAL CAN driver
+	//Use mailboxes in FIFO mode for now
 	//uint32_t mailbox;
 	//if      (prio <= 2) {mailbox = CAN_TX_MAILBOX0;}
 	//else if (prio <= 4) {mailbox = CAN_TX_MAILBOX1;}
@@ -393,13 +394,12 @@ HAL_StatusTypeDef tNMEA2000_STM32::SetN2kCANFilter( bool ExtendedIdentifier, uin
 			&& FilterNum < SlaveStartFilterBank ) {
 		FilterBank = FilterNum;
 	}
-	else if (N2kCan->Instance == CAN2
 			&& FilterNum <= TotalFilterBanks - SlaveStartFilterBank) {
 		FilterBank = FilterNum + SlaveStartFilterBank;
 	}
 
 	if ( FilterBank >= 0
-			&& IS_CAN_ALL_INSTANCE(N2kCan->Instance) )
+			&& IS_CAN_ALL_INSTANCE(canBus->Instance) )
 	{
 		CAN_FilterTypeDef sFilterConfig;
 
@@ -435,34 +435,44 @@ HAL_StatusTypeDef tNMEA2000_STM32::SetN2kCANFilter( bool ExtendedIdentifier, uin
 
 // *****************************************************************************
 
+/*******************************************************************************
+  * @brief  returns pointer to tNMEA2000_STM32 instance from certain CAN_HandleTypeDef struct
+  * @param  hcan CAN_HandleTypeDef pointer
+  * @retval tNMEA2000_STM32  pointer
+  */
+tNMEA2000_STM32* getInstance(CAN_HandleTypeDef *hcan)
+{
+	tNMEA2000_STM32* instance;
+	for (auto & inst : canInstances) { // iterate over all canInstances
+		if (inst->canBus == hcan) {
+			instance = inst;
+		}
+	}
+	return instance;
+}
 
 void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
-	// Call rxInterrupt method of the last tNMEA2000_STM32 instance.
-	NMEA2000_STM32_instance->CANreadRxMailbox(hcan);
+	getInstance(hcan)->CANReadRxMailbox(hcan, CAN_RX_FIFO0);
+	//NMEA2000_STM32_instance->CANReadRxMailbox(hcan);
 }
 
 void HAL_CAN_TxMailbox0CompleteCallback(CAN_HandleTypeDef *hcan)
 {
 	// Call TX Interrupt method
-	NMEA2000_STM32_instance->sendFromTxRing(); // send message with highest priority on ring buffer
+	//NMEA2000_STM32_instance->SendFromTxRing(); // send message with highest priority on ring buffer
+	getInstance(hcan)->SendFromTxRing(); // send message with highest priority on ring buffer
 }
 void HAL_CAN_TxMailbox1CompleteCallback(CAN_HandleTypeDef *hcan)
 {
 	// Call TX Interrupt method
-	NMEA2000_STM32_instance->sendFromTxRing(); // send message with highest priority on ring buffer
+	getInstance(hcan)->SendFromTxRing(); // send message with highest priority on ring buffer
 }
-
-// keep one mailbox callback for the non NMEA2000 CAN lib
-#include "CAN_STM32.hpp"
-#ifndef CAN_STM32_H_
-
 void HAL_CAN_TxMailbox2CompleteCallback(CAN_HandleTypeDef *hcan)
 {
 	// Call TX Interrupt method
-	NMEA2000_STM32_instance->sendFromTxRing(); // send message with highest priority on ring buffer
+	getInstance(hcan)->SendFromTxRing(); // send message with highest priority on ring buffer
 }
-#endif
 
 void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan)
 {
@@ -505,7 +515,6 @@ void delay(const uint32_t ms) {
 uint32_t millis(void) {
     return HAL_GetTick();
 };
-
 
 //*****************************************************************************
 // switch printf() to the debug interface SWO (STM32 ARM debug)
