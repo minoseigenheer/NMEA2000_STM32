@@ -58,7 +58,8 @@ If you are not very experienced with STM23CubeIDE this guide can help to configu
     git submodule add https://github.com/BitterAndReal/STM32_CAN
     git submodule update --init --recursive
     // and update them with 
-    git submodule foreach git pull
+    git pull --recurse-submodules
+    git submodule update --remote --recursive
     ```
   - Add the library folders to the G++ compiler include paths:
     > - Select your project in the Project Explorer.
