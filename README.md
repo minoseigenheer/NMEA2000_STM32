@@ -7,7 +7,27 @@ Might also works with F103 / F107 / F405 / F407... and other STM32 MCU's with in
 
 ### To use this library, you will also need:
   - NMEA2000 library https://github.com/ttlappalainen/NMEA2000
+  - STM32_CAN library https://github.com/BitterAndReal/STM32_CAN
   - STM32 HAL for your MCU
+```
+                           ┌───────────────────────────┐
+                           │  STM32F1xx_HAL_Driver     │
+                           │                           │
+                           │  STM32F1xx_LL_Driver      │
+                           └────────┬────────────┬─────┘
+                                    │            │
+┌──────────────────┐     ┌──────────▼────────┐   │
+│  NMEA2000 class  │     │  STM32_CAN class  │   │
+└────────────┬─────┘     └─────┬─────────┬───┘   │
+             │                 │         │       │
+      ┌──────▼─────────────────▼─────┐   │       │
+      │ NMEA2000_STM32 derived class │   │       │
+      └───────────────┬──────────────┘   │       │
+                      │                  │       │
+┌─────────────────────▼──────────────────▼───────▼────┐
+│  YOUR STM32 PROJECT                                 │
+└─────────────────────────────────────────────────────┘
+```
 
 ### Examples
 - [STM32CubeIDE NMEA2000 battery project example](https://github.com/BitterAndReal/STM32_NMEA2000_CAN_gateway/tree/main/STM32CubeIDE%20NMEA2000%20battery%20example)
@@ -20,7 +40,7 @@ If you are not very experienced with STM23CubeIDE this guide can help to configu
   - Select your MCU which will add the correct HAL to your project.
   - We can not directly call C++ from the main.c
     > Create your own application.cpp & application.hpp files with your C++ project setup() and loop() which are called from with extern "C" {...
-    > From there you can include "NMEA2000.h" & "NMEA2000_STM32.hpp" and call the NMEA2000 methods. 
+    > From there you can include "NMEA2000.h" & "NMEA2000_STM32.hpp" & "STM32_CAN.hpp" and call the NMEA2000 methods. 
   - In Cube MX configure external clock settings of your MCU. 
     > CAN bus needs an external clock source!
   - Activate the CAN bus you want to use.
@@ -34,6 +54,8 @@ If you are not very experienced with STM23CubeIDE this guide can help to configu
     git submodule add https://github.com/ttlappalainen/NMEA2000
     git submodule update --init --recursive
     git submodule add https://github.com/BitterAndReal/NMEA2000_STM32
+    git submodule update --init --recursive
+    git submodule add https://github.com/BitterAndReal/STM32_CAN
     git submodule update --init --recursive
     // and update them with 
     git submodule foreach git pull
