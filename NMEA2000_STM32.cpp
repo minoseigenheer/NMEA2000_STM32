@@ -41,8 +41,8 @@
 
 
 //*****************************************************************************
-tNMEA2000_STM32::tNMEA2000_STM32(CAN_HandleTypeDef *_canBus, tSTM32_CAN::CANbaudRatePrescaler _CANbaudRate) :
-		tSTM32_CAN(_canBus, _CANbaudRate),
+tNMEA2000_STM32::tNMEA2000_STM32(CAN_HandleTypeDef *_canBus) :
+		tSTM32_CAN(_canBus, tSTM32_CAN::CAN250kbit), // NMEA2000 CAN is allways 250kbit
 		tNMEA2000() {
 
 }
@@ -52,7 +52,14 @@ tNMEA2000_STM32::~tNMEA2000_STM32() {
 
 // forwarding of tNMEA2000 virtual functions to the corresponding functions in tSTM32_CAN base class
 bool tNMEA2000_STM32::CANOpen() {
-	return tSTM32_CAN::CANOpen();
+	bool ret;
+	ret = tSTM32_CAN::CANOpen();
+
+	// only accept extended frames on NMEA2000 CAN bus
+	if (ret == HAL_OK) {
+		ret = tSTM32_CAN::SetCANFilter( true, 0, 0x00000000, 0x00000000 );
+	}
+	return ret;
 }
 
 bool tNMEA2000_STM32::CANSendFrame(unsigned long id, unsigned char len, const unsigned char* buf, bool wait_sent) {

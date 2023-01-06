@@ -49,7 +49,7 @@ based setup. See also NMEA2000 library.
 class tNMEA2000_STM32 : public tSTM32_CAN, public tNMEA2000
 {
   public:
-  	tNMEA2000_STM32(CAN_HandleTypeDef *_canBus, tSTM32_CAN::CANbaudRatePrescaler _CANbaudRate);
+  	tNMEA2000_STM32(CAN_HandleTypeDef *_canBus);
   	virtual ~tNMEA2000_STM32();
 
     virtual bool CANOpen() override;
