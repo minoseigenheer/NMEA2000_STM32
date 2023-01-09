@@ -52,6 +52,7 @@ class tNMEA2000_STM32 : public tSTM32_CAN, public tNMEA2000
   	tNMEA2000_STM32(CAN_HandleTypeDef *_canBus);
   	virtual ~tNMEA2000_STM32();
 
+  	virtual void InitCANFrameBuffers() override;
     virtual bool CANOpen() override;
     virtual bool CANSendFrame(unsigned long id, unsigned char len, const unsigned char* buf, bool wait_sent = true) override;
     virtual bool CANGetFrame(unsigned long& id, unsigned char& len, unsigned char* buf) override;

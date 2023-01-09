@@ -51,6 +51,10 @@ tNMEA2000_STM32::~tNMEA2000_STM32() {
 }
 
 // forwarding of tNMEA2000 virtual functions to the corresponding functions in tSTM32_CAN base class
+void tNMEA2000_STM32::InitCANFrameBuffers() {
+	return tSTM32_CAN::InitCANFrameBuffers();
+}
+
 bool tNMEA2000_STM32::CANOpen() {
 	bool ret;
 	ret = tSTM32_CAN::CANOpen();
