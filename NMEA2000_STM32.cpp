@@ -52,7 +52,7 @@ tNMEA2000_STM32::~tNMEA2000_STM32() {
 
 // forwarding of tNMEA2000 virtual functions to the corresponding functions in tSTM32_CAN base class
 void tNMEA2000_STM32::InitCANFrameBuffers() {
-	return tSTM32_CAN::InitCANFrameBuffers();
+	tSTM32_CAN::InitCANFrameBuffers();
 }
 
 bool tNMEA2000_STM32::CANOpen() {
@@ -85,8 +85,16 @@ uint32_t millis(void) {
     return HAL_GetTick();
 };
 
-// N2kStream is using write() function
-int write(char *str, int len) {
-	return _write(0, str, len);
+// N2kStream is used for debugging
+size_t N2kStream_STM32::write(const uint8_t* data, size_t size) {
+	return _write(0, reinterpret_cast<char*>(const_cast<uint8_t*>(data)), (int)size);
+}
+// TODO implement STM32 read
+int N2kStream_STM32::read() {
+	return -1;
+}
+// TODO implement STM32 peek
+int N2kStream_STM32::peek() {
+	return -1;
 }
 

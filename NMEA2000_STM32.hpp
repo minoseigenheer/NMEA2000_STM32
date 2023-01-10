@@ -45,6 +45,17 @@ based setup. See also NMEA2000 library.
 #include "N2kMsg.h"
 #include "STM32_CAN.hpp"
 
+class N2kStream_STM32  : public N2kStream
+{
+	virtual size_t write(const uint8_t* data, size_t size) override;
+	virtual int read() override;
+	virtual int peek() override;
+};
+
+void     delay(uint32_t ms);
+uint32_t millis(void);
+
+//-----------------------------------------------------------------------------
 
 class tNMEA2000_STM32 : public tSTM32_CAN, public tNMEA2000
 {
@@ -57,14 +68,16 @@ class tNMEA2000_STM32 : public tSTM32_CAN, public tNMEA2000
     virtual bool CANSendFrame(unsigned long id, unsigned char len, const unsigned char* buf, bool wait_sent = true) override;
     virtual bool CANGetFrame(unsigned long& id, unsigned char& len, unsigned char* buf) override;
 
+  protected:
+    N2kStream_STM32 Serial;
+
+    // TODO NMEA2000.cpp uses Serial.print(...) for debugging
+    // but if we are not using Arduino this Class is not defined
+    // How can I create a N2kStream Serial instance which is available in the tNMEA2000 base class?
+    // But I get an error: 'Serial' was not declared in this scope
+
 
 };
-
-//-----------------------------------------------------------------------------
-
-void     delay(uint32_t ms);
-uint32_t millis(void);
-
 
 
 #endif /* NMEA2000_STM32_H_ */
