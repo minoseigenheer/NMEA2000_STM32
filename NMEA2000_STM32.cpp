@@ -85,16 +85,4 @@ uint32_t millis(void) {
     return HAL_GetTick();
 };
 
-// N2kStream is used for debugging
-size_t N2kStream_STM32::write(const uint8_t* data, size_t size) {
-	return _write(0, reinterpret_cast<char*>(const_cast<uint8_t*>(data)), (int)size);
-}
-// TODO implement STM32 read
-int N2kStream_STM32::read() {
-	return -1;
-}
-// TODO implement STM32 peek
-int N2kStream_STM32::peek() {
-	return -1;
-}
 
