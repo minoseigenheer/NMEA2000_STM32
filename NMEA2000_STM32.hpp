@@ -34,8 +34,9 @@ CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE
 OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-Inherited NMEA2000 object for STM32 MCU's with internal CAN
-based setup. See also NMEA2000 library.
+Inherited NMEA2000 object for STM32 MCU's with internal CAN.
+See also NMEA2000 library.
+
 */
 
 #ifndef NMEA2000_STM32_H_
@@ -60,13 +61,6 @@ class tNMEA2000_STM32 : public tSTM32_CAN, public tNMEA2000
     virtual bool CANSendFrame(unsigned long id, unsigned char len, const unsigned char* buf, bool wait_sent = true) override;
     virtual bool CANGetFrame(unsigned long& id, unsigned char& len, unsigned char* buf) override;
 
-  protected:
-
-    // TODO NMEA2000.cpp uses DebugStream.print(...) -> Serial.print(...) for debugging
-    // but if we are not using Arduino this Class is not defined
-    // How can I create a N2kStream_STM32 Serial instance which is available in the tNMEA2000 base class?
-    // But I get an error: 'Serial' was not declared in this scope
-    // N2kStream_STM32 Serial;
 
 };
 

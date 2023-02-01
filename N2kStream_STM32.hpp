@@ -28,12 +28,25 @@ CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE
 OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-Inherited NMEA2000 object for STM32 MCU's with internal CAN
-based setup. See also NMEA2000 library.
+Inherited class from N2kStream for STM32
+See also NMEA2000 library https://github.com/ttlappalainen/NMEA2000/N2kStream.h
+A DebugStream (Serial) object is used by tNMEA2000 for debugging.
+tSTM32_CAN and tNMEA2000_STM32 use printf() instead of DebugStream.print(...)
+
+In NMEA2000.cpp a DebugStream object is created like this:
+	#if defined(STM32)
+	#include "N2kStream_STM32.hpp"
+	N2kStream_STM32 DebugStream;
+	#endif
+
+TODO implement N2kStream_STM32::read() and N2kStream_STM32::peek() functions for STM32
+	 for now only N2kStream_STM32::write() is implemented to use DebugStream.print(...
+
+
 */
 
-#ifndef NMEA2000_STM32_N2KSTREAM_STM32_HPP_
-#define NMEA2000_STM32_N2KSTREAM_STM32_HPP_
+#ifndef N2KSTREAM_STM32_HPP_
+#define N2KSTREAM_STM32_HPP_
 
 #include "N2kStream.h"
 

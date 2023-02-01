@@ -60,8 +60,10 @@ bool tNMEA2000_STM32::CANOpen() {
 	ret = tSTM32_CAN::CANOpen();
 
 	// only accept extended frames on NMEA2000 CAN bus
-	if (ret == HAL_OK) {
-		ret = tSTM32_CAN::SetCANFilter( true, 0, 0x00000000, 0x00000000 );
+	if (ret == true) {
+		if (tSTM32_CAN::SetCANFilter( true, 0, 0x00000000, 0x00000000 ) != HAL_OK) {
+			ret = false;
+		}
 	}
 	return ret;
 }
