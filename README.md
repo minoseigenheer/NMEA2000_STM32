@@ -1,13 +1,13 @@
 # NMEA2000_STM32 CAN library
 
 Designed for STM32F105 CAN gateway.
-https://github.com/BitterAndReal/STM32_NMEA2000_CAN_gateway
+[https://github.com/minoseigenheer/STM32_NMEA2000_CAN_gateway](https://github.com/minoseigenheer/STM32_CAN_gateway)
 Might also works with F103 / F107 / F405 / F407... and other STM32 MCU's with integrated bxCAN controller.
 
 
 ### To use this library, you will also need:
   - NMEA2000 library https://github.com/ttlappalainen/NMEA2000
-  - STM32_CAN library https://github.com/BitterAndReal/STM32_CAN
+  - STM32_CAN library https://github.com/minoseigenheer/STM32_CAN
   - STM32 HAL for your MCU
 ```
                            ┌───────────────────────────┐
@@ -30,7 +30,7 @@ Might also works with F103 / F107 / F405 / F407... and other STM32 MCU's with in
 ```
 
 ### Examples
-- [STM32CubeIDE NMEA2000 battery project example](https://github.com/BitterAndReal/STM32_NMEA2000_CAN_gateway/tree/main/STM32CubeIDE%20NMEA2000%20battery%20example)
+- [STM32CubeIDE NMEA2000 battery project example](https://github.com/minoseigenheer/STM32_NMEA2000_CAN_gateway/tree/main/STM32CubeIDE%20NMEA2000%20battery%20example)
   > Import project into your STM32CubeIDE workspace
 ---
 ### STM23CubeIDE setup 
